@@ -1,9 +1,13 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
+using System.Collections.ObjectModel;
 using System.Net;
 
 namespace AMDevIT.Restling.Core.Network.Builders
 {
-    public class HttpClientBuilder
+    /// <summary>
+    /// Builds a valid <see cref="HttpClientContext"/> to use with a Restling instance.
+    /// </summary>
+    public class HttpClientContextBuilder : IHttpClientContextBuilder
     {
         #region  Consts
 
@@ -24,57 +28,63 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         #endregion
 
+        #region Properties
+
+        public ReadOnlyCollection<HttpCookieData> Cookies => this.cookies.ToList().AsReadOnly();
+
+        #endregion
+
         #region Methods
 
-        public HttpClientBuilder AddCookieContainer(CookieContainer cookieContainer)
-        {   
+        public HttpClientContextBuilder AddCookieContainer(CookieContainer cookieContainer)
+        {
             this.cookieContainer = cookieContainer;
 
             if (this.httpMessageHandler != null)
             {
-                switch(this.httpMessageHandler)
+                switch (this.httpMessageHandler)
                 {
                     case SocketsHttpHandler socketsHttpHandler:
-                        socketsHttpHandler.CookieContainer = this.cookieContainer
+                        socketsHttpHandler.CookieContainer = this.cookieContainer;
                         break;
 
                     case HttpClientHandler httpClientHandler:
-                        httpClientHandler.CookieContainer = this.cookieContainer
+                        httpClientHandler.CookieContainer = this.cookieContainer;
                         break;
-                }               
-            }    
+                }
+            }
             return this;
         }
 
-        public HttpClientBuilder ClearCookieContainer()
+        public HttpClientContextBuilder ClearCookieContainer()
         {
             return this.AddCookieContainer(new());
         }
 
 
-        public HttpClientBuilder AddCookie(HttpCookieData cookie)
+        public HttpClientContextBuilder AddCookie(HttpCookieData cookie)
         {
             this.cookies.Add(cookie);
             return this;
         }
 
-        public HttpClientBuilder AddCookies(IEnumerable<HttpCookieData> cookies)
+        public HttpClientContextBuilder AddCookies(IEnumerable<HttpCookieData> cookies)
         {
             foreach (HttpCookieData cookieData in cookies)
-            {   
+            {
                 this.cookies.Add(cookieData);
             }
 
             return this;
         }
 
-        public HttpClientBuilder RemoveCookie(HttpCookieData cookie)
+        public HttpClientContextBuilder RemoveCookie(HttpCookieData cookie)
         {
             this.cookies.Remove(cookie);
             return this;
         }
 
-        public HttpClientBuilder RemoveCookies(IEnumerable<HttpCookieData> cookies)
+        public HttpClientContextBuilder RemoveCookies(IEnumerable<HttpCookieData> cookies)
         {
             foreach (HttpCookieData cookieData in cookies)
             {
@@ -83,13 +93,13 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this;
         }
 
-        public HttpClientBuilder ClearCookies()
+        public HttpClientContextBuilder ClearCookies()
         {
             this.cookies.Clear();
             return this;
         }
 
-        public HttpClientBuilder AddHandler(HttpMessageHandler handler, bool diposeHandler = false)
+        public HttpClientContextBuilder AddHandler(HttpMessageHandler handler, bool diposeHandler = false)
         {
             this.httpMessageHandler = handler;
             this.disposeHandler = diposeHandler;
@@ -97,35 +107,35 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this;
         }
 
-        public HttpClientBuilder AddUserAgent(string? userAgent)
+        public HttpClientContextBuilder AddUserAgent(string? userAgent)
         {
             if (string.IsNullOrWhiteSpace(userAgent))
                 this.userAgent = DefaultUserAgent;
-            else 
+            else
                 this.userAgent = userAgent;
 
             return this;
         }
 
-        public HttpClientBuilder AddDefaultHeader(string name, string value)
+        public HttpClientContextBuilder AddDefaultHeader(string name, string value)
         {
             this.defaultHeaders[name] = value;
             return this;
         }
 
-        public HttpClientBuilder RemoveDefaultHeader(string name)
+        public HttpClientContextBuilder RemoveDefaultHeader(string name)
         {
             this.defaultHeaders.Remove(name);
             return this;
         }
 
-        public HttpClientBuilder  SetTimeout(TimeSpan? timeout)
+        public HttpClientContextBuilder SetTimeout(TimeSpan? timeout)
         {
             this.timeout = timeout;
             return this;
         }
 
-        public HttpClientBuilder ConfigureHandler(Action<HttpMessageHandler> configureHandler)
+        public HttpClientContextBuilder ConfigureHandler(Action<HttpMessageHandler> configureHandler)
         {
             ArgumentNullException.ThrowIfNull(configureHandler, nameof(configureHandler));
 
@@ -139,30 +149,32 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this;
         }
 
-        public HttpClient Build()
+        public HttpClientContext Build()
         {
             HttpClient httpClient;
+            HttpClientContext httpClientContext;
 
-            if (this.cookieContainer == null)
-                this.cookieContainer = new CookieContainer();
+            this.cookieContainer ??= new CookieContainer();
 
             if (this.httpMessageHandler == null)
             {
-                SocketsHttpHandler socketsHttpHandler = new();
-                socketsHttpHandler.CookieContainer = this.cookieContainer;
+                SocketsHttpHandler socketsHttpHandler = new()
+                {
+                    CookieContainer = this.cookieContainer
+                };
                 this.httpMessageHandler = socketsHttpHandler;
                 this.disposeHandler = true;
             }
 
             if (this.cookies.Count > 0)
             {
-                foreach(HttpCookieData cookieData in this.cookies)
+                foreach (HttpCookieData cookieData in this.cookies)
                 {
                     Cookie cookie = new(cookieData.Name, cookieData.Value, cookieData.Path, cookieData.Domain);
                     this.cookieContainer.Add(cookie);
                 }
             }
-           
+
             httpClient = new(this.httpMessageHandler, this.disposeHandler);
 
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(this.userAgent);
@@ -175,7 +187,9 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
             }
 
-            return httpClient;
+            httpClientContext = new(httpClient, this.httpMessageHandler, this.cookieContainer);
+
+            return httpClientContext;
         }
 
 

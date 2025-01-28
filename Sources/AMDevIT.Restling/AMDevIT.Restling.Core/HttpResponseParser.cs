@@ -31,6 +31,41 @@ namespace AMDevIT.Restling.Core
 
         #region Methods
 
+        public async Task<RestRequestResult> DecodeAsync(HttpResponseMessage resultHttpMessage,
+                                                         RestRequest restRequest,
+                                                         TimeSpan elapsed,
+                                                         CancellationToken cancellationToken = default)
+        {
+            RestRequestResult restRequestResult;
+
+            if (resultHttpMessage != null)
+            {
+                byte[] rawContent;
+                RetrieveContentResult content;
+                MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
+                Charset charset = CharsetParser.Parse(contentType?.CharSet);
+                rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
+                content = RetrieveContent(rawContent, contentType);               
+
+                restRequestResult = new(restRequest,                                        
+                                        resultHttpMessage.StatusCode,
+                                        elapsed,
+                                        rawContent,
+                                        contentType?.MediaType,
+                                        charset,
+                                        content);
+            }
+            else
+            {
+                HttpClientException httpClientException = new("Http response object is null");
+                restRequestResult = new(restRequest, httpClientException, elapsed);
+                this.Logger?.LogError(httpClientException, "Http response object is null");
+            }
+
+            return restRequestResult;
+        }
+
+
         public async Task<RestRequestResult<T>> DecodeAsync<T>(HttpResponseMessage resultHttpMessage,
                                                                RestRequest restRequest,
                                                                TimeSpan elapsed,

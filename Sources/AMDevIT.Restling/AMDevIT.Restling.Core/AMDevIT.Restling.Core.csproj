@@ -4,7 +4,40 @@
 	  <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Restling</Title>
+    <Authors>Alessandro Morvillo</Authors>
+    <Company>AMDev.IT di Alessandro Morvillo</Company>
+    <Product>Restling REST Client</Product>
+    <Description>A lightweight, powerful, and easy-to-use REST client library for .NET</Description>
+    <Copyright>© 2025 Alessandro Morvillo</Copyright>
+    <PackageProjectUrl>https://github.com/AMDevIT/Restling</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/AMDevIT/Restling.git</RepositoryUrl>
+    <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
+    <PackageReleaseNotes>First working version of Restling</PackageReleaseNotes>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Version>$(AssemblyVersion)</Version>
+    <PackageIcon>RestlingIcon.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\Assets\Icons\RestlingIcon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.1" />
