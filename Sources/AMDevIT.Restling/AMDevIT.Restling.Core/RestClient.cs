@@ -1,8 +1,7 @@
-﻿using AMDevIT.Restling.Core.Common;
-using AMDevIT.Restling.Core.Text;
+﻿using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Serialization;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Net.Http.Headers;
 using System.Text;
 
 namespace AMDevIT.Restling.Core
@@ -52,16 +51,14 @@ namespace AMDevIT.Restling.Core
 
         #region Methods
 
-        public async Task<RestRequestResult<T>> GetAsync<T>(string uri, CancellationToken cancellationToken = default) 
-            where T: class
+        public async Task<RestRequestResult<T>> GetAsync<T>(string uri, CancellationToken cancellationToken = default)          
         {
             HttpResponseMessage? resultHttpMessage = null;
             RestRequest restRequest;
             RestRequestResult<T> restRequestResult;
-            string? content = null;
-            TimeSpan elapsed = TimeSpan.Zero;
+            TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            byte[] rawContent;
+            HttpResponseParser httpResponseParser = new(this.Logger);
 
             restRequest = new RestRequest(uri,
                                           HttpMethod.GET,
@@ -85,48 +82,44 @@ namespace AMDevIT.Restling.Core
             {
                 elapsed = stopwatch.Elapsed;
             }
-
-            if (resultHttpMessage != null)
-            {
-                T? data = default;
-                MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
-                Charset charset = CharsetParser.Parse(contentType?.CharSet);
-                rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync();
-
-                // Response received.
-                if (resultHttpMessage.IsSuccessStatusCode)
-                { 
-                    // Try decoding data.
-                    switch (contentType?.MediaType)
-                    {
-                        case "application/json":
-                            content = this.DecodeString(rawContent, charset);
-                            data = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(content);
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-                else
-                {
-                    // Maybe it's good to decode the content anyway.
-                }
-
-                restRequestResult = new(data,
-                                        resultHttpMessage.StatusCode,
-                                        elapsed,
-                                        rawContent);
-            }
-            else
-            {
-                HttpClientException httpClientException = new HttpClientException("Http response object is null");
-                restRequestResult = new(httpClientException, elapsed);
-                this.Logger?.LogError(httpClientException, "Http response object is null");
-            }
-
+            
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, restRequest, elapsed, cancellationToken);
             return restRequestResult;
         }    
+
+        public async Task<RestRequestResult<T>> PostAsync<D, T>(string uri, D requestData, CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage? resultHttpMessage = null;
+            RestRequest restRequest;
+            RestRequestResult<T> restRequestResult;
+            TimeSpan elapsed;
+            Stopwatch stopwatch = new();
+            HttpResponseParser httpResponseParser = new(this.Logger);
+            restRequest = new RestRequest<D>(uri,
+                                             HttpMethod.POST,
+                                             requestData);
+            try
+            {
+                HttpContent content = BuildHttpContent(requestData);
+                stopwatch = Stopwatch.StartNew();
+                resultHttpMessage = await this.httpClient.PostAsync(uri, content, cancellationToken);
+                stopwatch.Stop();
+            }
+            catch (Exception exc)
+            {
+                if (stopwatch.IsRunning)
+                    stopwatch.Stop();
+                this.Logger?.LogError(exc, "Cannot execute POST REST request.");
+                return new RestRequestResult<T>(exc, stopwatch.Elapsed);
+            }
+            finally
+            {
+                elapsed = stopwatch.Elapsed;
+            }
+
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            return restRequestResult;
+        }
 
         public Task<RestRequestResult> ExecuteRequestAsync(RestRequest restRequest, 
                                                            CancellationToken cancellationToken = default)
@@ -153,38 +146,20 @@ namespace AMDevIT.Restling.Core
         {   
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
-        }
+        }      
 
-        private string DecodeString(byte[] rawContent, Charset charset)
+        private static HttpContent BuildHttpContent<T>(T requestData)
         {
-            string result;
-
-            switch (charset)
+            HttpContent content;
+            if (requestData == null)
+                content = new StringContent(string.Empty, Encoding.UTF8, HttpMediaType.ApplicationJson);
+            else
             {
-                case Charset.UTF8:
-                    result = Encoding.UTF8.GetString(rawContent);
-                    break;
-                case Charset.UTF16:
-                    result = Encoding.Unicode.GetString(rawContent);
-                    break;
-                case Charset.UTF32:
-                    result = Encoding.UTF32.GetString(rawContent);
-                    break;
-                case Charset.ASCII:
-                    result = Encoding.ASCII.GetString(rawContent);
-                    break;
-                case Charset.ISO_8859_1:
-                    result = Encoding.GetEncoding("iso-8859-1").GetString(rawContent);
-                    break;
-                case Charset.WINDOWS_1252:
-                    result = Encoding.GetEncoding("windows-1252").GetString(rawContent);
-                    break;
-                default:
-                    result = Encoding.UTF8.GetString(rawContent);
-                    break;
+                string jsonContent = JsonSerialization.Serialize(requestData);
+                content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
             }
 
-            return result;
+            return content;
         }
 
         #endregion

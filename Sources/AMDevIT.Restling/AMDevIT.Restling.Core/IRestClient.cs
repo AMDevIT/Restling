@@ -19,8 +19,8 @@
 
         #region Methods
 
-        Task<RestRequestResult<T>> GetAsync<T>(string uri, CancellationToken cancellationToken = default)
-           where T : class;
+        Task<RestRequestResult<T>> GetAsync<T>(string uri, CancellationToken cancellationToken = default);
+           
 
         #endregion
     }

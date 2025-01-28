@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using AMDevIT.Restling.Core.Text;
+using System.Net;
 
 namespace AMDevIT.Restling.Core
 {
@@ -22,8 +23,18 @@ namespace AMDevIT.Restling.Core
         public RestRequestResult(T? data,
                                  HttpStatusCode? statusCode, 
                                  TimeSpan elapsed, 
-                                 byte[] rawContent) 
-            : base(statusCode, elapsed, rawContent)
+                                 byte[] rawContent,
+                                 string? contentType,
+                                 Charset charset,
+                                 string? content = null,
+                                 Exception? exception = null) 
+            : base(statusCode, 
+                   elapsed, 
+                   rawContent, 
+                   contentType,
+                   charset,
+                   content, 
+                   exception)
         {
             this.data = data;
         }

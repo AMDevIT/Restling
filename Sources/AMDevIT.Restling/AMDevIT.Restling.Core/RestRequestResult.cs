@@ -1,17 +1,24 @@
-﻿using System.Net;
+﻿using AMDevIT.Restling.Core.Text;
+using System.Net;
 
 namespace AMDevIT.Restling.Core
 {
     public class RestRequestResult(HttpStatusCode? statusCode,
                                    TimeSpan elapsed,
                                    byte[] rawContent,
+                                   string? contentType,
+                                   Charset charset,
+                                   string? content = null,
                                    Exception? exception = null)
     {
         #region Fields
 
         private readonly TimeSpan elapsed = elapsed;
         private readonly HttpStatusCode? statusCode = statusCode;
+        private readonly string? contentType = contentType;
+        private readonly Charset charSet = charset;
         private readonly byte[]? rawContent = rawContent;
+        private readonly string? content = content;
         private readonly Exception? exception = exception;
 
         #endregion
@@ -22,6 +29,10 @@ namespace AMDevIT.Restling.Core
         public HttpStatusCode? StatusCode => this.statusCode;
         public bool IsSuccessful => this.ValidateIsSuccessful();
         public byte[]? RawContent => this.rawContent;
+        public string? Content => this.content;
+
+        public string? ContentType => this.contentType;
+        public Charset CharSet => this.charSet;
 
         public Exception? Exception => this.exception;
 
@@ -66,6 +77,11 @@ namespace AMDevIT.Restling.Core
             };
 
             return isSuccessful;
+        }
+
+        public override string ToString()
+        {
+            return $"[Status:{this.StatusCode},Elapsed:{this.Elapsed}]{this.ContentType}({this.CharSet})";
         }
 
         #endregion
