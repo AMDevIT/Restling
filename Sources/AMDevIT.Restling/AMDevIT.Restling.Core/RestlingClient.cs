@@ -594,7 +594,16 @@ namespace AMDevIT.Restling.Core
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
+
+/* Modifica senza merge dal progetto 'AMDevIT.Restling.Core (net8.0)'
+Prima:
             httpRequest = this.BuildHttpRequestMessage(restRequest);                   
+            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
+Dopo:
+            httpRequest = BuildHttpRequestMessage(restRequest);                   
+            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
+*/
+            httpRequest = RestlingClient.BuildHttpRequestMessage(restRequest);                   
             restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
             return restRequestResult;
         }
@@ -619,7 +628,16 @@ namespace AMDevIT.Restling.Core
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
+
+/* Modifica senza merge dal progetto 'AMDevIT.Restling.Core (net8.0)'
+Prima:
             httpRequest = this.BuildHttpRequestMessage(restRequest);           
+            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
+Dopo:
+            httpRequest = BuildHttpRequestMessage(restRequest);           
+            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
+*/
+            httpRequest = RestlingClient.BuildHttpRequestMessage(restRequest);           
             restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
             return restRequestResult;
         }
@@ -758,7 +776,7 @@ namespace AMDevIT.Restling.Core
             return content;
         }
 
-        protected HttpRequestMessage BuildHttpRequestMessage(RestRequest restRequest)
+        protected static HttpRequestMessage BuildHttpRequestMessage(RestRequest restRequest)
         {
             HttpRequestMessage httpRequest;
             NetHttpMethod requestHttpMethod;
