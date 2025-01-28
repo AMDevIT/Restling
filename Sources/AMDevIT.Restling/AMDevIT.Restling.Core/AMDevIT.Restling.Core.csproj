@@ -15,9 +15,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/AMDevIT/Restling.git</RepositoryUrl>
     <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
-    <AssemblyVersion>0.2.60.0</AssemblyVersion>
+    <AssemblyVersion>0.2.63.0</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
-    <PackageReleaseNotes>Added additional request headers, including specific authentication header.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added additional request headers, including specific authentication header.
+Added support for per-call headers.
+Fixed minor bugs.</PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Version>$(AssemblyVersion)</Version>

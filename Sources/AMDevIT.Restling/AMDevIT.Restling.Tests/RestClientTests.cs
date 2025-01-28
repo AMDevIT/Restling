@@ -203,6 +203,64 @@ namespace AMDevIT.Restling.Tests
             Trace.WriteLine($"Raw content: {nsRestRequestResult.Content}");
         }
 
+        [TestMethod]
+        [DataRow("https://httpbin.org/put", "Test name", "Test surname", "AuthenticationTokeWasHere", "app-version", "1.0.a.b")]
+        public async Task TestPutAdvancedAsync(string uri,
+                                               string name,
+                                               string surname,
+                                               string authenticationParameter,
+                                               string additionalHeaderKey,
+                                               string additionalHeaderValue)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<NSHttpBinResponse> nsRestRequestResult;
+            NSHttpBinResponse? nsHttpBinResponse;
+            AuthenticationHeader authenticationHeader = new("Bearer", authenticationParameter);
+            RequestHeaders requestHeaders = new(authenticationHeader);
+            HttpDataTestModel testModel = new(name, surname);
+
+            requestHeaders.Headers.Add(additionalHeaderKey, additionalHeaderValue);
+
+            nsRestRequestResult = await restlingClient.PutAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, requestHeaders, cancellationToken);
+
+            Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            nsHttpBinResponse = nsRestRequestResult.Data;
+            Trace.WriteLine("NS response:");
+            Trace.WriteLine(nsHttpBinResponse.ToString());
+            Trace.WriteLine($"Raw content: {nsRestRequestResult.Content}");
+        }
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/delete", "1234", "AuthenticationTokeWasHere", "app-version", "1.0.a.b")]
+        public async Task TestDeleteAdvancedAsync(string uri,
+                                                  string parameter,
+                                                  string authenticationParameter,
+                                                  string additionalHeaderKey,
+                                                  string additionalHeaderValue)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<NSHttpBinResponse> nsRestRequestResult;
+            NSHttpBinResponse? nsHttpBinResponse;
+            AuthenticationHeader authenticationHeader = new("Bearer", authenticationParameter);
+            RequestHeaders requestHeaders = new(authenticationHeader);
+
+            requestHeaders.Headers.Add(additionalHeaderKey, additionalHeaderValue);
+
+            uri = $"{uri}?test={parameter}";
+
+            nsRestRequestResult = await restlingClient.DeleteAsync<NSHttpBinResponse>(uri, requestHeaders, cancellationToken);
+
+            Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            nsHttpBinResponse = nsRestRequestResult.Data;
+            Trace.WriteLine("NS response:");
+            Trace.WriteLine(nsHttpBinResponse.ToString());
+            Trace.WriteLine($"Raw content: {nsRestRequestResult.Content}");
+        }
+
 
         #endregion
 

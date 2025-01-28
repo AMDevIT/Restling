@@ -551,7 +551,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult restRequestResult;
 
             restRequest = new RestRequest(uri,
-                                          HttpMethod.Post,
+                                          HttpMethod.Delete,
                                           requestHeaders);
 
             restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken);
@@ -566,7 +566,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult<T> restRequestResult;
 
             restRequest = new RestRequest(uri,
-                                          HttpMethod.Post,
+                                          HttpMethod.Delete,
                                           requestHeaders);
 
             restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
