@@ -28,6 +28,13 @@ namespace AMDevIT.Restling.Core.Cookies.Storage.Serialization
             set;
         }
 
+        [JsonProperty("isSecure")]
+        public bool? IsSecure
+        {
+            get;
+            set;
+        }
+
         [JsonProperty("name")]
         public string Name
         {
@@ -52,14 +59,16 @@ namespace AMDevIT.Restling.Core.Cookies.Storage.Serialization
         }
 
         public CookieSerializationItem(string? domain, 
-                                    string? path, 
-                                    string? uri, 
-                                    string name, 
-                                    string? value)
+                                       string? path, 
+                                       string? uri, 
+                                       bool? isSecure, 
+                                       string name, 
+                                       string? value)
         {
             this.Domain = domain;
             this.Path = path;
             this.Uri = uri;
+            this.IsSecure = isSecure;
             this.Name = name;
             this.Value = value;
         }
@@ -70,7 +79,7 @@ namespace AMDevIT.Restling.Core.Cookies.Storage.Serialization
 
         public override string ToString()
         {
-            return $"[Domain:{this.Domain},Path:{this.Path},Uri:{this.Uri}]{this.Name}={this.Value}";
+            return $"[Domain:{this.Domain},Path:{this.Path},Uri:{this.Uri}, IsSecure: {this.IsSecure}]{this.Name}={this.Value}";
         }
 
         #endregion

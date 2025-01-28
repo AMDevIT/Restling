@@ -4,7 +4,7 @@
                                 string? value,
                                 string? domain = null, 
                                 string? path = null,
-                                bool? isSecure,
+                                bool? isSecure = null,
                                 string? uri = null)
         : IEquatable<HttpCookieData>, IComparable<HttpCookieData>
     {
