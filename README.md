@@ -7,3 +7,10 @@ The goal of Restling is to provide a flexible yet easy-to-use REST client API. W
 ## Why the name "Restling"?
 
 While chatting with a friend, the name came to mind as a pun combining "REST" and "Changeling," the Fae beings from Northern folk tales. Restling is a library that has taken on the form of a REST client—though its journey started as something entirely different.
+
+## Supported versions of DotNet
+
+Restling supports both the latest .NET version and the latest LTS version, ensuring compatibility and stability for a wide range of projects.
+
+*LTS Version:* .NET 8.0
+*STS Version:* .NET 9.0
