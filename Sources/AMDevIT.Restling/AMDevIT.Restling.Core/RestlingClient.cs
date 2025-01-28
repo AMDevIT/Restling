@@ -344,6 +344,44 @@ namespace AMDevIT.Restling.Core
 
         #endregion
 
+        #region PUT
+
+        public async Task<RestRequestResult> PutAsync<T>(string uri,
+                                                         T requestData,
+                                                         CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage? resultHttpMessage = null;
+            RestRequest restRequest;
+            RestRequestResult restRequestResult;
+            TimeSpan elapsed;
+            Stopwatch stopwatch = new();
+            HttpResponseParser httpResponseParser = new(this.Logger);
+            restRequest = new RestRequest<T>(uri,
+                                             HttpMethod.Put,
+                                             requestData);
+            try
+            {
+                HttpContent content = this.BuildHttpContent(requestData);
+                stopwatch = Stopwatch.StartNew();
+                resultHttpMessage = await this.httpClientContext.HttpClient.PutAsync(uri, content, cancellationToken);
+                stopwatch.Stop();
+            }
+            catch (Exception exc)
+            {
+                if (stopwatch.IsRunning)
+                    stopwatch.Stop();
+                this.Logger?.LogError(exc, "Cannot execute PUT REST request.");
+                return new RestRequestResult(restRequest, exc, stopwatch.Elapsed);
+            }
+            finally
+            {
+                elapsed = stopwatch.Elapsed;
+            }
+
+            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            return restRequestResult;
+        }
+
         /// <summary>
         /// Execute a PUT request to the specified URI and return the result as a <see cref="RestRequestResult{T}"/> instance.
         /// </summary>
@@ -388,6 +426,44 @@ namespace AMDevIT.Restling.Core
             restRequestResult = await httpResponseParser.DecodeAsync<D>(resultHttpMessage, restRequest, elapsed, cancellationToken);
             return restRequestResult;
         }
+
+        public async Task<RestRequestResult> PutAsync<T>(string uri,
+                                                         T requestData,
+                                                         RequestHeaders requestHeaders,
+                                                         CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest;
+            RestRequestResult restRequestResult;
+
+            restRequest = new RestRequest<T>(uri,
+                                             HttpMethod.Put,
+                                             requestData,
+                                             requestHeaders);
+
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
+            return restRequestResult;
+        }
+
+        public async Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
+                                                               T requestData,
+                                                               RequestHeaders requestHeaders,
+                                                               CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest;
+            RestRequestResult<D> restRequestResult;
+
+            restRequest = new RestRequest<T>(uri,
+                                             HttpMethod.Put,
+                                             requestData,
+                                             requestHeaders);
+
+            restRequestResult = await this.ExecuteRequestAsync<D, T>(restRequest, cancellationToken);
+            return restRequestResult;
+        }
+
+        #endregion
+
+        #region DELETE
 
         /// <summary>
         /// Execute a DELETE request to the specified URI and return the result as a <see cref="RestRequestResult"/> instance.
@@ -466,6 +542,38 @@ namespace AMDevIT.Restling.Core
             restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, restRequest, elapsed, cancellationToken);
             return restRequestResult;
         }
+
+        public async Task<RestRequestResult> DeleteAsync(string uri,
+                                                         RequestHeaders requestHeaders,
+                                                         CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest;
+            RestRequestResult restRequestResult;
+
+            restRequest = new RestRequest(uri,
+                                          HttpMethod.Post,
+                                          requestHeaders);
+
+            restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken);
+            return restRequestResult;
+        }
+
+        public async Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
+                                                               RequestHeaders requestHeaders,
+                                                               CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest;
+            RestRequestResult<T> restRequestResult;
+
+            restRequest = new RestRequest(uri,
+                                          HttpMethod.Post,
+                                          requestHeaders);
+
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
+            return restRequestResult;
+        }
+
+        #endregion
 
         /// <summary>
         /// Execute a REST request and return the result as a <see cref="RestRequestResult"/> instance.

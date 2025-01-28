@@ -1,9 +1,9 @@
 ﻿using AMDevIT.Restling.Core;
+using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Tests.Diagnostics;
 using AMDevIT.Restling.Tests.Models;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Reflection.Metadata;
 
 namespace AMDevIT.Restling.Tests
 {
@@ -36,7 +36,8 @@ namespace AMDevIT.Restling.Tests
             // Inizializza il logger prima di ogni test
             this.logger = new TraceLogger<RestClientTests>();
         }
-        
+
+        #region Quick methods
 
         [TestMethod]
         [DataRow("https://httpbin.org/get", "1234")]
@@ -139,6 +140,71 @@ namespace AMDevIT.Restling.Tests
             Trace.WriteLine("St response:");
             Trace.WriteLine(stsHttpBinResponse.ToString());
         }
+
+        #endregion
+
+        #region Advanced methods
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/get", "1234", "AuthenticationTokeWasHere", "app-version", "1.0.a.b")]
+        public async Task TestGetAdvancedAsync(string uri, 
+                                               string parameter, 
+                                               string authenticationParameter, 
+                                               string additionalHeaderKey, 
+                                               string additionalHeaderValue)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<NSHttpBinResponse> nsRestRequestResult;
+            NSHttpBinResponse? nsHttpBinResponse;
+            AuthenticationHeader authenticationHeader = new ("Bearer", authenticationParameter);
+            RequestHeaders requestHeaders = new (authenticationHeader);
+
+            requestHeaders.Headers.Add(additionalHeaderKey, additionalHeaderValue);
+
+            uri = $"{uri}?test={parameter}";
+
+            nsRestRequestResult = await restlingClient.GetAsync<NSHttpBinResponse>(uri, requestHeaders, cancellationToken);
+
+            Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            nsHttpBinResponse = nsRestRequestResult.Data;
+            Trace.WriteLine("NS response:");
+            Trace.WriteLine(nsHttpBinResponse.ToString());
+            Trace.WriteLine($"Raw content: {nsRestRequestResult.Content}");
+        }
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/post", "Test name", "Test surname", "AuthenticationTokeWasHere", "app-version", "1.0.a.b")]
+        public async Task TestPostAdvancedAsync(string uri,
+                                                string name, 
+                                                string surname,
+                                                string authenticationParameter,
+                                                string additionalHeaderKey,
+                                                string additionalHeaderValue)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<NSHttpBinResponse> nsRestRequestResult;
+            NSHttpBinResponse? nsHttpBinResponse;
+            AuthenticationHeader authenticationHeader = new ("Bearer", authenticationParameter);
+            RequestHeaders requestHeaders = new (authenticationHeader);
+            HttpDataTestModel testModel = new(name, surname);
+
+            requestHeaders.Headers.Add(additionalHeaderKey, additionalHeaderValue);            
+
+            nsRestRequestResult = await restlingClient.PostAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, requestHeaders, cancellationToken);
+
+            Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            nsHttpBinResponse = nsRestRequestResult.Data;
+            Trace.WriteLine("NS response:");
+            Trace.WriteLine(nsHttpBinResponse.ToString());
+            Trace.WriteLine($"Raw content: {nsRestRequestResult.Content}");
+        }
+
+
+        #endregion
 
         [TestMethod]
         [DataRow("https://httpbin.org/get", "1234")]
