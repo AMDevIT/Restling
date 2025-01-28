@@ -17,7 +17,21 @@
     <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
-    <PackageReleaseNotes>First working version of Restling</PackageReleaseNotes>
+    <PackageReleaseNotes>First pre-release version.
+
+# What works
+
+* Restling REST client basic usage:
+* * GetAsync
+* * PostAsync
+* * PustAsync
+* * DeleteAsync
+* * Custom REST execution
+* Restling REST client Http context customization, like cookies, additional headers and user agent
+
+# What it's still missing
+
+* Authentication header per call: Restling still not support authentication header per-call, but as a workaround can be set as an additional header with HttpClientContextBuilder. This is very useful for JWT token based authentication, where the token remain the same for all the lifecycle of the object.</PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Version>$(AssemblyVersion)</Version>
@@ -33,7 +47,7 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-    <None Include="..\..\..\README.md">
+    <None Include="..\..\..\Assets\Documentation\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
