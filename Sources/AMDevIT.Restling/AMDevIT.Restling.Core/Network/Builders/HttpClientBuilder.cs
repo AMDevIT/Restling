@@ -74,6 +74,15 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this;
         }
 
+        public HttpClientBuilder RemoveCookies(IEnumerable<HttpCookieData> cookies)
+        {
+            foreach (HttpCookieData cookieData in cookies)
+            {
+                this.cookies.Remove(cookieData);
+            }
+            return this;
+        }
+
         public HttpClientBuilder ClearCookies()
         {
             this.cookies.Clear();
