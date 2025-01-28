@@ -3,6 +3,7 @@ using AMDevIT.Restling.Core.Network.Builders;
 using AMDevIT.Restling.Core.Serialization;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Text;
 using NetHttpMethod = System.Net.Http.HttpMethod;
 
@@ -134,6 +135,36 @@ namespace AMDevIT.Restling.Core
             }
 
             restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            return restRequestResult;
+        }
+
+        public async Task<RestRequestResult> GetAsync(string uri, 
+                                                      RequestHeaders requestHeaders, 
+                                                      CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest;
+            RestRequestResult restRequestResult;
+
+            restRequest = new RestRequest(uri,
+                                          HttpMethod.Get,
+                                          requestHeaders);
+
+            restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken);
+            return restRequestResult;
+        }
+
+        public async Task<RestRequestResult<T>> GetAsync<T>(string uri,
+                                                            RequestHeaders requestHeaders,
+                                                            CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest;
+            RestRequestResult<T> restRequestResult;
+
+            restRequest = new RestRequest(uri,
+                                          HttpMethod.Get,
+                                          requestHeaders);
+
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
             return restRequestResult;
         }
 
@@ -406,33 +437,83 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult> ExecuteRequestAsync(RestRequest restRequest, 
                                                                  CancellationToken cancellationToken = default)
         {
-            HttpResponseMessage? resultHttpMessage = null;
-            RestRequestResult restRequestResult;
-            TimeSpan elapsed;
-            Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
             HttpRequestMessage httpRequest;
-            NetHttpMethod requestHttpMethod;
+            RestRequestResult restRequestResult;
 
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
-            requestHttpMethod = restRequest.Method switch
-            {
-                HttpMethod.Get => NetHttpMethod.Get,
-                HttpMethod.Post => NetHttpMethod.Post,
-                HttpMethod.Put => NetHttpMethod.Put,
-                HttpMethod.Delete => NetHttpMethod.Delete,
-                HttpMethod.Head => NetHttpMethod.Head,
-                HttpMethod.Options => NetHttpMethod.Options,
-                HttpMethod.Trace => NetHttpMethod.Trace,
-                HttpMethod.Patch => NetHttpMethod.Patch,
-                HttpMethod.Custom => new NetHttpMethod(restRequest.CustomMethod ?? 
-                                                       throw new ArgumentException("Custom method cannot be null")),
-                _ => throw new NotSupportedException($"The HTTP method {restRequest.Method} is not supported.")
-            };
+            httpRequest = this.BuildHttpRequestMessage(restRequest);                   
+            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
+            return restRequestResult;
+        }
 
-            httpRequest = new HttpRequestMessage(requestHttpMethod, restRequest.Uri);
+        /// <summary>
+        /// Execute a REST request and return the result as a <see cref="RestRequestResult"/> instance.
+        /// </summary>
+        /// <typeparam name="T">A primitive type or a model to which the result content body will be parsed to</typeparam>
+        /// <param name="restRequest">A <see cref="RestRequest"/> parameter that indicates the request method and uri.</param>
+        /// <param name="cancellationToken">A valid cancellation token</param>
+        /// <returns>The value returned from the remote resource</returns>
+        /// <exception cref="ArgumentException">If custom method mode is specified, but the custom method verb name is not set, 
+        /// an argument exception will be throw.</exception>
+        /// <exception cref="NotSupportedException">If a http method different from Get, Post, Put, Delete, Head, 
+        /// Options, Trace, Patch or Custom a NotSupportedException will be throw.</exception>
+        public async Task<RestRequestResult<T>> ExecuteRequestAsync<T>(RestRequest restRequest,
+                                                                       CancellationToken cancellationToken = default)
+        {   
+            HttpRequestMessage httpRequest;
+            RestRequestResult<T> restRequestResult;
+
+            ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
+            ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
+
+            httpRequest = this.BuildHttpRequestMessage(restRequest);           
+            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
+            return restRequestResult;
+        }
+
+        /// <summary>
+        /// Execute a REST request and return the result as a <see cref="RestRequestResult"/> instance. 
+        /// </summary>
+        /// <typeparam name="D">A primitive type or a model to which the result content body will be parsed to</typeparam>
+        /// <typeparam name="T">A primitive type or a model to which the result content body will be parsed to</typeparam>
+        /// <param name="restRequest">A <see cref="RestRequest"/> parameter that indicates the request method and uri.</param>
+        /// <param name="cancellationToken">A valid cancellation token</param>
+        /// <returns>The value returned from the remote resource</returns>
+        /// <exception cref="ArgumentException">If custom method mode is specified, but the custom method verb name is not set, 
+        /// an argument exception will be throw.</exception>
+        /// <exception cref="NotSupportedException">If a http method different from Get, Post, Put, Delete, Head, 
+        /// Options, Trace, Patch or Custom a NotSupportedException will be throw.</exception>
+        public async Task<RestRequestResult<D>> ExecuteRequestAsync<D, T>(RestRequest<T> restRequest,
+                                                                          CancellationToken cancellationToken = default)
+        {
+            HttpRequestMessage httpRequest;
+            RestRequestResult<D> restRequestResult;
+
+            ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
+            ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
+
+            httpRequest = this.BuildHttpRequestMessage<T>(restRequest);
+            restRequestResult = await this.ExecuteRequestInternalAsync<D>(restRequest, httpRequest, cancellationToken);
+            return restRequestResult;
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }       
+
+        protected async Task<RestRequestResult<T>> ExecuteRequestInternalAsync<T>(RestRequest restRequest, 
+                                                                                  HttpRequestMessage httpRequest, 
+                                                                                  CancellationToken cancellationToken = default)
+        {
+            HttpResponseParser httpResponseParser = new(this.Logger);
+            RestRequestResult<T> restRequestResult;
+            HttpResponseMessage? resultHttpMessage = null;
+            Stopwatch stopwatch = new();
+            TimeSpan elapsed;
 
             try
             {
@@ -445,20 +526,15 @@ namespace AMDevIT.Restling.Core
                 if (stopwatch.IsRunning)
                     stopwatch.Stop();
 
-                string methodName;
-
-                if (restRequest.Method == HttpMethod.Custom)
-                    methodName = restRequest.CustomMethod ?? "Custom";
-                else
-                    methodName = requestHttpMethod.Method;
-                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", methodName);
-                return new RestRequestResult(restRequest, exc, stopwatch.Elapsed);
+                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+                return new RestRequestResult<T>(restRequest, exc, stopwatch.Elapsed);
             }
             finally
             {
                 elapsed = stopwatch.Elapsed;
             }
-            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, restRequest, elapsed, cancellationToken);
             return restRequestResult;
         }
 
@@ -480,15 +556,12 @@ namespace AMDevIT.Restling.Core
         /// <summary>
         /// Dispose the HttpClient instance and all the handlers when disposing the RestlingClient instance, if <see cref="DisposeContext"/> is set to true.
         /// </summary>
-        public void Dispose()
-        {   
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }      
 
-        private HttpContent BuildHttpContent<T>(T requestData)
+
+        protected HttpContent BuildHttpContent<T>(T requestData)
         {
             HttpContent content;
+
             if (requestData == null)
                 content = new StringContent(string.Empty, Encoding.UTF8, HttpMediaType.ApplicationJson);
             else
@@ -501,7 +574,84 @@ namespace AMDevIT.Restling.Core
             return content;
         }
 
-        private static HttpClientContext BuildDefaultHttpClientContext()
+        protected HttpRequestMessage BuildHttpRequestMessage(RestRequest restRequest)
+        {
+            HttpRequestMessage httpRequest;
+            NetHttpMethod requestHttpMethod;
+
+            requestHttpMethod = restRequest.Method switch
+            {
+                HttpMethod.Get => NetHttpMethod.Get,
+                HttpMethod.Post => NetHttpMethod.Post,
+                HttpMethod.Put => NetHttpMethod.Put,
+                HttpMethod.Delete => NetHttpMethod.Delete,
+                HttpMethod.Head => NetHttpMethod.Head,
+                HttpMethod.Options => NetHttpMethod.Options,
+                HttpMethod.Trace => NetHttpMethod.Trace,
+                HttpMethod.Patch => NetHttpMethod.Patch,
+                HttpMethod.Custom => new NetHttpMethod(restRequest.CustomMethod ??
+                                                       throw new ArgumentException("Custom method cannot be null")),
+                _ => throw new NotSupportedException($"The HTTP method {restRequest.Method} is not supported.")
+            };
+
+            httpRequest = new HttpRequestMessage(requestHttpMethod, restRequest.Uri);
+
+            if (restRequest.Headers.AuthenticationHeader != null)
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue(restRequest.Headers.AuthenticationHeader.Scheme,
+                                                                                  restRequest.Headers.AuthenticationHeader.Parameter);
+
+            if (restRequest.Headers.Headers.Count > 0)
+            {
+                foreach (KeyValuePair<string, string> header in restRequest.Headers.Headers)
+                {
+                    httpRequest.Headers.Add(header.Key, header.Value);
+                }
+            }
+
+            return httpRequest;
+        }
+
+        protected HttpRequestMessage BuildHttpRequestMessage<T>(RestRequest<T> restRequest)
+        {
+            HttpRequestMessage httpRequest;
+            NetHttpMethod requestHttpMethod;
+
+            requestHttpMethod = restRequest.Method switch
+            {
+                HttpMethod.Get => NetHttpMethod.Get,
+                HttpMethod.Post => NetHttpMethod.Post,
+                HttpMethod.Put => NetHttpMethod.Put,
+                HttpMethod.Delete => NetHttpMethod.Delete,
+                HttpMethod.Head => NetHttpMethod.Head,
+                HttpMethod.Options => NetHttpMethod.Options,
+                HttpMethod.Trace => NetHttpMethod.Trace,
+                HttpMethod.Patch => NetHttpMethod.Patch,
+                HttpMethod.Custom => new NetHttpMethod(restRequest.CustomMethod ??
+                                                       throw new ArgumentException("Custom method cannot be null")),
+                _ => throw new NotSupportedException($"The HTTP method {restRequest.Method} is not supported.")
+            };
+
+            httpRequest = new HttpRequestMessage(requestHttpMethod, restRequest.Uri);
+
+            if (restRequest.Headers.AuthenticationHeader != null)
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue(restRequest.Headers.AuthenticationHeader.Scheme,
+                                                                                  restRequest.Headers.AuthenticationHeader.Parameter);
+
+            if (restRequest.Headers.Headers.Count > 0)
+            {
+                foreach (KeyValuePair<string, string> header in restRequest.Headers.Headers)
+                {
+                    httpRequest.Headers.Add(header.Key, header.Value);
+                }
+            }
+
+            if (restRequest.RequestData != null)
+                httpRequest.Content = this.BuildHttpContent<T>(restRequest.RequestData);
+
+            return httpRequest;
+        }
+
+        protected static HttpClientContext BuildDefaultHttpClientContext()
         {
             HttpClientContextBuilder httpClientBuilder = new();
             return httpClientBuilder.Build();

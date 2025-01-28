@@ -1,6 +1,7 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Http.Headers;
 
 namespace AMDevIT.Restling.Core.Network.Builders
 {
@@ -24,6 +25,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         private readonly HashSet<HttpCookieData> cookies = [];
         private readonly Dictionary<string, string> defaultHeaders = [];
+        private AuthenticationHeader? authenticationHeader = null;
         private TimeSpan? timeout = null;
 
         #endregion
@@ -35,6 +37,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
         #endregion
 
         #region Methods
+
+        #region Cookies
 
         public HttpClientContextBuilder AddCookieContainer(CookieContainer cookieContainer)
         {
@@ -99,6 +103,10 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this;
         }
 
+        #endregion
+
+        #region Handlers
+
         public HttpClientContextBuilder AddHandler(HttpMessageHandler handler, bool diposeHandler = false)
         {
             this.httpMessageHandler = handler;
@@ -106,6 +114,24 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
             return this;
         }
+
+        public HttpClientContextBuilder ConfigureHandler(Action<HttpMessageHandler> configureHandler)
+        {
+            ArgumentNullException.ThrowIfNull(configureHandler, nameof(configureHandler));
+
+            if (this.httpMessageHandler == null)
+            {
+                this.httpMessageHandler = new SocketsHttpHandler();
+                this.disposeHandler = true;
+            }
+
+            configureHandler(this.httpMessageHandler);
+            return this;
+        }
+
+        #endregion
+
+        #region Headers
 
         public HttpClientContextBuilder AddUserAgent(string? userAgent)
         {
@@ -129,25 +155,38 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this;
         }
 
+        public HttpClientContextBuilder ClearDefaultHeaders()
+        {
+            this.defaultHeaders.Clear();
+            return this;
+        }
+
+        public HttpClientContextBuilder AddAuthenticationHeader(string scheme, string parameter)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(scheme, "Authentication scheme cannot be null");
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(parameter, "Authentication parameter cannot be null");
+            AuthenticationHeader authenticationHeader = new(scheme, parameter);
+            this.authenticationHeader = authenticationHeader;
+            return this;
+        }
+
+        public HttpClientContextBuilder RemoveAuthenticationHeader()
+        {
+            this.authenticationHeader = null;
+            return this;
+        }
+
+        #endregion
+
+        #region REST parameters
+
         public HttpClientContextBuilder SetTimeout(TimeSpan? timeout)
         {
             this.timeout = timeout;
             return this;
         }
 
-        public HttpClientContextBuilder ConfigureHandler(Action<HttpMessageHandler> configureHandler)
-        {
-            ArgumentNullException.ThrowIfNull(configureHandler, nameof(configureHandler));
-
-            if (this.httpMessageHandler == null)
-            {
-                this.httpMessageHandler = new SocketsHttpHandler();
-                this.disposeHandler = true;
-            }
-
-            configureHandler(this.httpMessageHandler);
-            return this;
-        }
+        #endregion
 
         public HttpClientContext Build()
         {
@@ -185,6 +224,13 @@ namespace AMDevIT.Restling.Core.Network.Builders
             foreach (KeyValuePair<string, string> header in this.defaultHeaders)
             {
                 httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+            }
+
+            if (this.authenticationHeader != null)
+            {
+                AuthenticationHeaderValue authenticationHeaderValue;
+                authenticationHeaderValue = new (this.authenticationHeader.Scheme, this.authenticationHeader.Parameter);
+                httpClient.DefaultRequestHeaders.Authorization = authenticationHeaderValue;
             }
 
             httpClientContext = new(httpClient, this.httpMessageHandler, this.cookieContainer);
