@@ -23,6 +23,26 @@ Restling supports both the latest .NET version and the latest LTS version, ensur
 *LTS Version:* .NET 8.0
 *STS Version:* .NET 9.0
 
+## Installation
+
+You can use Visual Studio solution package management or use the following commands:
+
+### DotNet CLI
+
+From a valid terminal:
+
+```
+dotnet add package AMDevIT.Restling.Core
+```
+
+### NuGet Package Manager
+
+Using Visual Studio powershell package manager:
+
+```
+Install-Package AMDevIT.Restling.Core
+```
+
 ## Basic usage:
 
 The quickest way to use Restling is to allocate the client without parameters:

@@ -1,4 +1,6 @@
-﻿namespace AMDevIT.Restling.Core
+﻿using AMDevIT.Restling.Core.Network;
+
+namespace AMDevIT.Restling.Core
 {
     /// <summary>
     /// Represents a REST client that can be used to perform HTTP requests to a remote resource.
@@ -25,6 +27,8 @@
 
         #region Methods
 
+        #region GET
+
         /// <summary>
         /// Execute a GET request to the specified URI and return the result as a <see cref="RestRequestResult"/> instance.
         /// </summary>
@@ -41,6 +45,18 @@
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
         Task<RestRequestResult<T>> GetAsync<T>(string uri, CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult> GetAsync(string uri,
+                                         RequestHeaders requestHeaders,
+                                         CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult<T>> GetAsync<T>(string uri,
+                                               RequestHeaders requestHeaders,
+                                               CancellationToken cancellationToken = default);
+
+        #endregion
+
+        #region POST
 
         /// <summary>
         /// Execute a POST request to the specified URI and return the result as a <see cref="RestRequestResult"/> instance.
@@ -67,6 +83,24 @@
                                                    T requestData,
                                                    CancellationToken cancellationToken = default);
 
+        Task<RestRequestResult> PostAsync<T>(string uri,
+                                             T requestData,
+                                             RequestHeaders requestHeaders,
+                                             CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
+                                                   T requestData,
+                                                   RequestHeaders requestHeaders,
+                                                   CancellationToken cancellationToken = default);
+
+        #endregion
+
+        #region PUT
+
+        Task<RestRequestResult> PutAsync<T>(string uri,
+                                            T requestData,
+                                            CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Execute a PUT request to the specified URI and return the result as a <see cref="RestRequestResult{T}"/> instance.
         /// </summary>
@@ -79,6 +113,20 @@
         Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
                                                   T requestData,
                                                   CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult> PutAsync<T>(string uri,
+                                            T requestData,
+                                            RequestHeaders requestHeaders,
+                                            CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
+                                                  T requestData,
+                                                  RequestHeaders requestHeaders,
+                                                  CancellationToken cancellationToken = default);
+
+        #endregion
+
+        #region DELETE
 
         /// <summary>
         /// Execute a DELETE request to the specified URI and return the result as a <see cref="RestRequestResult"/> instance.
@@ -97,6 +145,28 @@
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
         Task<RestRequestResult<T>> DeleteAsync<T>(string uri, CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult> DeleteAsync(string uri,
+                                            RequestHeaders requestHeaders,
+                                            CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
+                                                  RequestHeaders requestHeaders,
+                                                  CancellationToken cancellationToken = default);
+
+        #endregion
+
+
+        #region Generic execution methods
+
+        Task<RestRequestResult> ExecuteRequestAsync(RestRequest restRequest,
+                                                    CancellationToken cancellationToken = default);
+        Task<RestRequestResult<T>> ExecuteRequestAsync<T>(RestRequest restRequest,
+                                                          CancellationToken cancellationToken = default);
+        Task<RestRequestResult<D>> ExecuteRequestAsync<D, T>(RestRequest<T> restRequest,
+                                                             CancellationToken cancellationToken = default);
+
+        #endregion
 
         #endregion
     }

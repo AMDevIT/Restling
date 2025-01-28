@@ -1,16 +1,19 @@
-﻿namespace AMDevIT.Restling.Core
+﻿using AMDevIT.Restling.Core.Network;
+
+namespace AMDevIT.Restling.Core
 {
     public class RestRequest<T>(string uri,
                                 HttpMethod method,
-                                T? requestData,
+                                RequestHeaders headers,
                                 string? customMethod = null)
         : RestRequest(uri, 
-               method, 
-               customMethod)
+                      method,
+                      headers,
+                      customMethod)
     {
         #region Fields
 
-        private T? requestData = requestData;
+        private T? requestData;
 
         #endregion
 
@@ -20,6 +23,37 @@
         {
             get => this.requestData;
             set => this.requestData = value;
+        }
+
+        #endregion
+
+        #region .ctor
+
+        public RestRequest(string uri,
+                           HttpMethod method,
+                           T? requestData,
+                           string? customMethod = null)
+            : this(uri, method, requestData, new(), customMethod)
+        {
+        }
+
+        public RestRequest(string uri,
+                           HttpMethod method,
+                           T? requestData,
+                           RequestHeaders headers,
+                           string? customMethod = null)
+            : this(uri, method, headers, customMethod)
+        {
+            this.requestData = requestData;
+        }
+
+        #endregion
+
+        #region Methods
+
+        public override string ToString()
+        {
+            return $"{this.Method}[{this.CustomMethod}] {this.Uri} {this.Headers} {this.RequestData}";
         }
 
         #endregion

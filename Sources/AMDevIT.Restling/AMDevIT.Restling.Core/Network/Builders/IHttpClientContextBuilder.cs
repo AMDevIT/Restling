@@ -6,21 +6,52 @@ namespace AMDevIT.Restling.Core.Network.Builders
 {
     public interface IHttpClientContextBuilder
     {
+        #region Properties
+
         ReadOnlyCollection<HttpCookieData> Cookies { get; }
+
+        #endregion
+
+        #region Methods
+
+        #region Cookies
 
         HttpClientContextBuilder AddCookie(HttpCookieData cookie);
         HttpClientContextBuilder AddCookieContainer(CookieContainer cookieContainer);
         HttpClientContextBuilder AddCookies(IEnumerable<HttpCookieData> cookies);
-        HttpClientContextBuilder AddDefaultHeader(string name, string value);
-        HttpClientContextBuilder AddHandler(HttpMessageHandler handler, bool diposeHandler = false);
-        HttpClientContextBuilder AddUserAgent(string? userAgent);
-        HttpClientContext Build();
         HttpClientContextBuilder ClearCookieContainer();
         HttpClientContextBuilder ClearCookies();
-        HttpClientContextBuilder ConfigureHandler(Action<HttpMessageHandler> configureHandler);
         HttpClientContextBuilder RemoveCookie(HttpCookieData cookie);
         HttpClientContextBuilder RemoveCookies(IEnumerable<HttpCookieData> cookies);
+
+        #endregion
+
+        #region Headers
+
+        HttpClientContextBuilder AddDefaultHeader(string name, string value);
         HttpClientContextBuilder RemoveDefaultHeader(string name);
+        HttpClientContextBuilder ClearDefaultHeaders();
+        HttpClientContextBuilder AddUserAgent(string? userAgent);
+        HttpClientContextBuilder AddAuthenticationHeader(string scheme, string parameter);
+        HttpClientContextBuilder RemoveAuthenticationHeader();
+
+        #endregion
+
+        #region Handlers
+
+        HttpClientContextBuilder AddHandler(HttpMessageHandler handler, bool diposeHandler = false);
+        HttpClientContextBuilder ConfigureHandler(Action<HttpMessageHandler> configureHandler);
+
+        #endregion
+
+        #region Http parameters
+
         HttpClientContextBuilder SetTimeout(TimeSpan? timeout);
+
+        #endregion
+
+        HttpClientContext Build();
+
+        #endregion
     }
 }
