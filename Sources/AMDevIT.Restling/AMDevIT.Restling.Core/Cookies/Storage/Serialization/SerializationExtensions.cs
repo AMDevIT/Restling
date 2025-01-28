@@ -6,12 +6,12 @@
 
         public static HttpCookieData ToCookieData(this CookieSerializationItem source)
         {
-            return new HttpCookieData(source.Name, source.Value, source.Domain, source.Path, source.Uri);
+            return new HttpCookieData(source.Name, source.Value, source.Domain, source.Path, source.IsSecure, source.Uri);
         }
 
         public static CookieSerializationItem ToSerializationItem(this HttpCookieData source)
         {
-            return new CookieSerializationItem(source.Domain, source.Path, source.Uri, source.Name, source.Value);
+            return new CookieSerializationItem(source.Domain, source.Path, source.Uri, source.IsSecure, source.Name, source.Value);
         }
 
         #endregion
