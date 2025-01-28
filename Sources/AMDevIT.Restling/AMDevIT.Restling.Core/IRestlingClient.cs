@@ -56,6 +56,8 @@ namespace AMDevIT.Restling.Core
 
         #endregion
 
+        #region POST
+
         /// <summary>
         /// Execute a POST request to the specified URI and return the result as a <see cref="RestRequestResult"/> instance.
         /// </summary>
@@ -80,6 +82,18 @@ namespace AMDevIT.Restling.Core
         Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
                                                    T requestData,
                                                    CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult> PostAsync<T>(string uri,
+                                             T requestData,
+                                             RequestHeaders requestHeaders,
+                                             CancellationToken cancellationToken = default);
+
+        Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
+                                                   T requestData,
+                                                   RequestHeaders requestHeaders,
+                                                   CancellationToken cancellationToken = default);
+
+        #endregion
 
         /// <summary>
         /// Execute a PUT request to the specified URI and return the result as a <see cref="RestRequestResult{T}"/> instance.

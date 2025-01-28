@@ -8,7 +8,7 @@ namespace AMDevIT.Restling.Core
     {
         #region Fields
 
-        private readonly RequestHeaders headers = new();
+        protected readonly RequestHeaders headers = new();
         private string uri = uri;
         private HttpMethod method = method;
         private string? customMethod = customMethod;
