@@ -1,10 +1,9 @@
 ﻿using AMDevIT.Restling.Core.Common;
 using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Serialization;
 using AMDevIT.Restling.Core.Text;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Serialization;
 
@@ -63,7 +62,10 @@ namespace AMDevIT.Restling.Core
                                 try
                                 {
                                     if (content.Content is string json)
-                                        data = JsonConvert.DeserializeObject<T>(json);
+                                    {
+                                        JsonSerialization jsonSerialization = new(this.Logger);
+                                        data = jsonSerialization.Deserialize<T>(json);
+                                    }
                                 }
                                 catch (Exception exc)
                                 {
