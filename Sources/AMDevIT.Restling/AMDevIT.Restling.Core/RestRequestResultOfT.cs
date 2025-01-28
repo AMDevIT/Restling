@@ -20,15 +20,17 @@ namespace AMDevIT.Restling.Core
 
         #region .ctor
 
-        public RestRequestResult(T? data,
+        public RestRequestResult(RestRequest request,
+                                 T? data,
                                  HttpStatusCode? statusCode, 
                                  TimeSpan elapsed, 
                                  byte[] rawContent,
                                  string? contentType,
                                  Charset charset,
-                                 string? content = null,
+                                 object? content = null,
                                  Exception? exception = null) 
-            : base(statusCode, 
+            : base(request,
+                   statusCode, 
                    elapsed, 
                    rawContent, 
                    contentType,
@@ -39,15 +41,18 @@ namespace AMDevIT.Restling.Core
             this.data = data;
         }
 
-        public RestRequestResult(Exception exception)
-          : base(exception)
+        public RestRequestResult(RestRequest request, Exception exception)
+          : base(request, exception)
         {
 
         }
 
-        public RestRequestResult(Exception exception,
+        public RestRequestResult(RestRequest request, 
+                                 Exception exception,
                                  TimeSpan elapsed)
-          : base(exception, elapsed)
+          : base(request, 
+                 exception, 
+                 elapsed)
         {
         }
 

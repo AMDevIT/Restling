@@ -4,6 +4,7 @@ using AMDevIT.Restling.Core.Text;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Serialization;
 
@@ -13,7 +14,7 @@ namespace AMDevIT.Restling.Core
     {
         #region Consts
 
-      
+
 
         #endregion
 
@@ -31,7 +32,7 @@ namespace AMDevIT.Restling.Core
 
         #region Methods
 
-        public async Task<RestRequestResult<T>> DecodeAsync<T>(HttpResponseMessage resultHttpMessage,            
+        public async Task<RestRequestResult<T>> DecodeAsync<T>(HttpResponseMessage resultHttpMessage,
                                                                RestRequest restRequest,
                                                                TimeSpan elapsed,
                                                                CancellationToken cancellationToken = default)
@@ -42,17 +43,17 @@ namespace AMDevIT.Restling.Core
             {
                 byte[] rawContent;
                 T? data = default;
-                string? content;
+                RetrieveContentResult content;
                 MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
                 Charset charset = CharsetParser.Parse(contentType?.CharSet);
                 rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
-                content = DecodeContentString(rawContent, charset);
+                content = RetrieveContent(rawContent, contentType);
 
                 // Response received.
                 if (resultHttpMessage.IsSuccessStatusCode)
                 {
-                    if (typeof(T) == typeof(byte[]))                    
-                        data = (T)(object)rawContent;                    
+                    if (typeof(T) == typeof(byte[]))
+                        data = (T)(object)rawContent;
                     else
                     {
                         // Try decoding data.
@@ -61,9 +62,10 @@ namespace AMDevIT.Restling.Core
                             case HttpMediaType.ApplicationJson:
                                 try
                                 {
-                                    data = JsonConvert.DeserializeObject<T>(content);
+                                    if (content.Content is string json)
+                                        data = JsonConvert.DeserializeObject<T>(json);
                                 }
-                                catch(Exception exc)
+                                catch (Exception exc)
                                 {
                                     this.Logger?.LogError(exc, "Failed to deserialize JSON content.");
                                 }
@@ -73,11 +75,14 @@ namespace AMDevIT.Restling.Core
                             case HttpMediaType.TextXml:
                                 try
                                 {
-                                    XmlSerializer serializer = new (typeof(T));
-                                    using var stringReader = new StringReader(content);
-                                    data = (T?)serializer.Deserialize(stringReader);
+                                    if (content.Content is string xml)
+                                    {
+                                        XmlSerializer serializer = new(typeof(T));
+                                        using var stringReader = new StringReader(xml);
+                                        data = (T?)serializer.Deserialize(stringReader);
+                                    }
                                 }
-                                catch(Exception exc)
+                                catch (Exception exc)
                                 {
                                     this.Logger?.LogError(exc, "Failed to deserialize XML content.");
                                 }
@@ -85,13 +90,25 @@ namespace AMDevIT.Restling.Core
 
                             default:
                                 // If it's a string or other primitive, try to parse it.
-                                if (typeof(T) == typeof(string))                                
-                                    data = (T)(object)content;                                
+                                if (typeof(T) == typeof(string))
+                                {
+                                    string dataString;
+
+                                    if (content.IsBinaryData == true)
+                                        dataString = Convert.ToBase64String(rawContent);
+                                    else
+                                        dataString = content.Content?.ToString() ?? string.Empty;
+
+                                    data = (T)(object)dataString;
+                                }
                                 else if (typeof(T).IsPrimitive)
                                 {
                                     try
                                     {
-                                        data = (T)Convert.ChangeType(content, typeof(T));
+                                        if (content.Content != null)
+                                            data = (T)Convert.ChangeType(content.Content, typeof(T));
+                                        else
+                                            data = default;
                                     }
                                     catch (Exception convertEx)
                                     {
@@ -104,6 +121,7 @@ namespace AMDevIT.Restling.Core
                                     this.Logger?.LogWarning("Unsupported media type: {MediaType}", contentType?.MediaType);
                                 }
                                 break;
+
                         }
                     }
                 }
@@ -112,7 +130,8 @@ namespace AMDevIT.Restling.Core
                     // Maybe it's good to decode the content anyway.
                 }
 
-                restRequestResult = new(data,
+                restRequestResult = new(restRequest,
+                                        data,
                                         resultHttpMessage.StatusCode,
                                         elapsed,
                                         rawContent,
@@ -122,43 +141,88 @@ namespace AMDevIT.Restling.Core
             }
             else
             {
-                HttpClientException httpClientException = new HttpClientException("Http response object is null");
-                restRequestResult = new(httpClientException, elapsed);
+                HttpClientException httpClientException = new ("Http response object is null");
+                restRequestResult = new(restRequest, httpClientException, elapsed);
                 this.Logger?.LogError(httpClientException, "Http response object is null");
             }
 
             return restRequestResult;
         }
 
-        private static string DecodeContentString(byte[] rawContent, Charset charset)
+        private static RetrieveContentResult RetrieveContent(byte[] rawContent,
+                                                             MediaTypeHeaderValue? contentType)
         {
-            string result;
+            object? content;
+            bool isBinaryData = false;
+            RetrieveContentResult contentResult;
 
-            switch (charset)
+            if (contentType == null)
             {
-                case Charset.UTF8:
-                    result = Encoding.UTF8.GetString(rawContent);
-                    break;
-                case Charset.UTF16:
-                    result = Encoding.Unicode.GetString(rawContent);
-                    break;
-                case Charset.UTF32:
-                    result = Encoding.UTF32.GetString(rawContent);
-                    break;
-                case Charset.ASCII:
-                    result = Encoding.ASCII.GetString(rawContent);
-                    break;
-                case Charset.ISO_8859_1:
-                    result = Encoding.GetEncoding("iso-8859-1").GetString(rawContent);
-                    break;
-                case Charset.WINDOWS_1252:
-                    result = Encoding.GetEncoding("windows-1252").GetString(rawContent);
-                    break;
-                default:
-                    result = Encoding.UTF8.GetString(rawContent);
-                    break;
+                content = rawContent;
+            }
+            else
+            {
+                Charset charset = CharsetParser.Parse(contentType.CharSet);
+                switch (contentType.MediaType)
+                {
+                    case HttpMediaType.ApplicationJson:
+                    case HttpMediaType.ApplicationXml:
+                    case HttpMediaType.TextXml:
+                    case HttpMediaType.TextPlain:
+                    case HttpMediaType.TextHtml:
+                    case HttpMediaType.TextCss:
+                    case HttpMediaType.TextJavascript:
+                    case HttpMediaType.ImageSvgXml:
+                        {
+                            string stringContent = DecodeContentString(rawContent, charset);
+                            content = stringContent;
+                            isBinaryData = false;
+                        }
+                        break;
+
+                    case HttpMediaType.ImagePng:
+                    case HttpMediaType.ImageJpeg:
+                    case HttpMediaType.ImageGif:
+                    case HttpMediaType.ImageBmp:
+                    case HttpMediaType.ImageWebp:
+                    case HttpMediaType.ApplicationOctetStream:
+                    case HttpMediaType.VideoMp4:
+                    case HttpMediaType.VideoMpeg:
+                    case HttpMediaType.VideoOgg:
+                    case HttpMediaType.VideoWebm:
+                    case HttpMediaType.VideoQuicktime:
+                        {
+                            content = rawContent;
+                            isBinaryData = true;
+                        }
+                        break;
+
+                    default:
+                        {
+                            // This is a fallback, if the content type is not recognized.
+                            // The content is returned as a byte array.
+                            content = rawContent;
+                        }
+                        break;
+                }
             }
 
+            contentResult = new(content, isBinaryData, contentType);
+            return contentResult;
+        }
+
+        private static string DecodeContentString(byte[] rawContent, Charset charset)
+        {
+            string result = charset switch
+            {
+                Charset.UTF8 => Encoding.UTF8.GetString(rawContent),
+                Charset.UTF16 => Encoding.Unicode.GetString(rawContent),
+                Charset.UTF32 => Encoding.UTF32.GetString(rawContent),
+                Charset.ASCII => Encoding.ASCII.GetString(rawContent),
+                Charset.ISO_8859_1 => Encoding.GetEncoding("iso-8859-1").GetString(rawContent),
+                Charset.WINDOWS_1252 => Encoding.GetEncoding("windows-1252").GetString(rawContent),
+                _ => Encoding.UTF8.GetString(rawContent),
+            };
             return result;
         }
 

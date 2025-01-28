@@ -1,6 +1,6 @@
 ﻿namespace AMDevIT.Restling.Core
 {
-    public interface IRestClient
+    public interface IRestlingClient
     {
         #region Properties
 

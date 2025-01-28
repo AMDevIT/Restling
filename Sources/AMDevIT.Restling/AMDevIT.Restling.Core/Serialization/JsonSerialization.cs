@@ -1,15 +1,28 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace AMDevIT.Restling.Core.Serialization
 {
     /// <summary>
     /// Implements methods to serialize and deserialize JSON data using Newtonsoft.Json or System.Text.Json 
     /// </summary>
-    internal static class JsonSerialization
-    {   
+    internal class JsonSerialization(ILogger? logger)
+    {
+        #region Fields
+
+        private readonly ILogger? logger = logger;
+
+        #endregion
+
+        #region Properties
+
+        protected ILogger? Logger => this.logger;
+
+        #endregion
+
         #region Methods
 
-        public static string Serialize(object objectInstance)
+        public string Serialize(object objectInstance)
         {
             ArgumentNullException.ThrowIfNull(objectInstance, nameof(objectInstance));
 
@@ -17,7 +30,7 @@ namespace AMDevIT.Restling.Core.Serialization
             return UsesNewtonsoftAttributes(objectType) ? NewtonsoftSerialize(objectInstance) : SystemTextSerialize(objectInstance);
         }
 
-        public static T? Deserialize<T>(string json)
+        public T? Deserialize<T>(string json)
         {
             ArgumentNullException.ThrowIfNull(json, nameof(json));
             if (string.IsNullOrWhiteSpace(json))
@@ -26,8 +39,10 @@ namespace AMDevIT.Restling.Core.Serialization
             return UsesNewtonsoftAttributes(typeof(T)) ? NewtonsoftDeserialize<T>(json) : SystemTextDeserialize<T>(json);
         }
 
-        private static string NewtonsoftSerialize(object objectInstance)
+        private string NewtonsoftSerialize(object objectInstance)
         {
+            this.Logger?.LogDebug("Serializing object of type {typeName} with Newtonsoft.Json", objectInstance.GetType().FullName);
+
             try
             {
                 return JsonConvert.SerializeObject(objectInstance);
@@ -38,8 +53,10 @@ namespace AMDevIT.Restling.Core.Serialization
             }
         }        
 
-        private static string SystemTextSerialize(object objectInstance)
+        private string SystemTextSerialize(object objectInstance)
         {
+            this.Logger?.LogDebug("Serializing object of type {typeName} with System.Text.Json", objectInstance.GetType().FullName);
+
             try
             {
                 return System.Text.Json.JsonSerializer.Serialize(objectInstance);
@@ -50,8 +67,10 @@ namespace AMDevIT.Restling.Core.Serialization
             }
         }
 
-        private static T? NewtonsoftDeserialize<T>(string json)
+        private T? NewtonsoftDeserialize<T>(string json)
         {
+            this.Logger?.LogDebug("Deserializing object of type {typeName} with Newtonsoft.Json", typeof(T).FullName);
+
             try
             {
                 return JsonConvert.DeserializeObject<T>(json);
@@ -63,8 +82,10 @@ namespace AMDevIT.Restling.Core.Serialization
             }
         }
 
-        private static T? SystemTextDeserialize<T>(string json)
+        private T? SystemTextDeserialize<T>(string json)
         {
+            this.Logger?.LogDebug("Deserializing object of type {typeName} with System.Text.Json", typeof(T).FullName);
+
             try
             {
                 return System.Text.Json.JsonSerializer.Deserialize<T>(json);
@@ -76,8 +97,10 @@ namespace AMDevIT.Restling.Core.Serialization
             }
         }
 
-        private static bool UsesNewtonsoftAttributes(Type type)
+        private bool UsesNewtonsoftAttributes(Type type)
         {
+            bool isNewtonsoft;
+
             // Newtonsoft.Json attributes that can be attached to the class itself.
             Type[] classAttributes =
             [
@@ -97,12 +120,14 @@ namespace AMDevIT.Restling.Core.Serialization
             ];
 
             
-            bool classHasAttributes = classAttributes.Any(attr => type.GetCustomAttributes(attr, inherit: true).Any());            
+            bool classHasAttributes = classAttributes.Any(attr => type.GetCustomAttributes(attr, inherit: true).Length != 0);            
             bool propertyHasAttributes = type.GetProperties()
                                                       .Any(prop => propertyAttributes.Any(attr => prop.GetCustomAttributes(attr, inherit: true)
                                                                                                       .Length != 0));
 
-            return classHasAttributes || propertyHasAttributes;
+            isNewtonsoft = classHasAttributes || propertyHasAttributes;
+            this.Logger?.LogDebug("Type {typeName} uses Newtonsoft.Json attributes: {isNewtonsoft}", type.FullName, isNewtonsoft);
+            return isNewtonsoft;
         }
 
         #endregion

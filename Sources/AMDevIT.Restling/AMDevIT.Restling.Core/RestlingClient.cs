@@ -6,13 +6,14 @@ using System.Text;
 
 namespace AMDevIT.Restling.Core
 {
-    public class RestClient
-        : IRestClient, IDisposable
+    public class RestlingClient(HttpClient httpClient,
+                                ILogger? logger)
+        : IRestlingClient, IDisposable
     {
         #region Fields
 
-        private readonly HttpClient httpClient;
-        private readonly ILogger? logger;
+        private readonly HttpClient httpClient = httpClient;
+        private readonly ILogger? logger = logger;
         private bool disposedValue;
 
         #endregion
@@ -34,15 +35,14 @@ namespace AMDevIT.Restling.Core
 
         #region .ctor
 
-        public RestClient(HttpClient httpClient, 
-                          ILogger? logger)
+        public RestlingClient()
+            : this(new HttpClient(), null) 
         {
-            this.httpClient = httpClient;
-            this.logger = logger;
+
         }
 
-        public RestClient()
-            : this(new HttpClient(), null) 
+        public RestlingClient(ILogger logger)
+          : this(new HttpClient(), logger)
         {
 
         }
@@ -66,9 +66,11 @@ namespace AMDevIT.Restling.Core
 
             try
             {
+                this.Logger?.LogDebug("Executing GET REST request to {uri}", uri);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClient.GetAsync(uri, cancellationToken);
                 stopwatch.Stop();
+                this.Logger?.LogDebug("GET REST request to {uri} executed in {elapsed} ms", uri, stopwatch.ElapsedMilliseconds);
             }
             catch(Exception exc)
             {
@@ -76,7 +78,7 @@ namespace AMDevIT.Restling.Core
                     stopwatch.Stop();
 
                 this.Logger?.LogError(exc, "Cannot execute GET REST request.");
-                return new RestRequestResult<T>(exc, stopwatch.Elapsed);
+                return new RestRequestResult<T>(restRequest, exc, stopwatch.Elapsed);
             }
             finally
             {
@@ -100,7 +102,7 @@ namespace AMDevIT.Restling.Core
                                              requestData);
             try
             {
-                HttpContent content = BuildHttpContent(requestData);
+                HttpContent content = this.BuildHttpContent(requestData);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClient.PostAsync(uri, content, cancellationToken);
                 stopwatch.Stop();
@@ -110,7 +112,7 @@ namespace AMDevIT.Restling.Core
                 if (stopwatch.IsRunning)
                     stopwatch.Stop();
                 this.Logger?.LogError(exc, "Cannot execute POST REST request.");
-                return new RestRequestResult<T>(exc, stopwatch.Elapsed);
+                return new RestRequestResult<T>(restRequest, exc, stopwatch.Elapsed);
             }
             finally
             {
@@ -148,14 +150,15 @@ namespace AMDevIT.Restling.Core
             GC.SuppressFinalize(this);
         }      
 
-        private static HttpContent BuildHttpContent<T>(T requestData)
+        private HttpContent BuildHttpContent<T>(T requestData)
         {
             HttpContent content;
             if (requestData == null)
                 content = new StringContent(string.Empty, Encoding.UTF8, HttpMediaType.ApplicationJson);
             else
             {
-                string jsonContent = JsonSerialization.Serialize(requestData);
+                JsonSerialization jsonSerialization = new(this.Logger);
+                string jsonContent = jsonSerialization.Serialize(requestData);
                 content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
             }
 
