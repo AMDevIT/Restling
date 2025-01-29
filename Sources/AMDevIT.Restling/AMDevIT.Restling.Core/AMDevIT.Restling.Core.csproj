@@ -17,7 +17,7 @@
     <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
     <AssemblyVersion>1.0.15.0</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
-    <PackageReleaseNotes>Added IsSecure boolean value to HttpCookieData, for compatibility with controls like WebView2.
+    <PackageReleaseNotes>Fixed an issue with CookieContainer, HttpMessageHandler and UseCookies. Also the client now exposes the Context for more granular manipulation.
 </PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
