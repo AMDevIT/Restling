@@ -27,7 +27,7 @@ namespace AMDevIT.Restling.Core
                                  byte[] rawContent,
                                  string? contentType,
                                  Charset charset,
-                                 object? content = null,
+                                 RetrievedContentResult? retrievedContent,
                                  Exception? exception = null) 
             : base(request,
                    statusCode, 
@@ -35,7 +35,7 @@ namespace AMDevIT.Restling.Core
                    rawContent, 
                    contentType,
                    charset,
-                   content, 
+                   retrievedContent, 
                    exception)
         {
             this.data = data;
