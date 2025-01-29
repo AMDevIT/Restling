@@ -9,7 +9,7 @@ namespace AMDevIT.Restling.Core
                                    byte[] rawContent,
                                    string? contentType,
                                    Charset charset,
-                                   object? content = null,
+                                   RetrievedContentResult? retrievedContent,
                                    Exception? exception = null)
     {
         #region Fields
@@ -20,7 +20,7 @@ namespace AMDevIT.Restling.Core
         private readonly string? contentType = contentType;
         private readonly Charset charSet = charset;
         private readonly byte[]? rawContent = rawContent;
-        private readonly object? content = content;
+        private readonly RetrievedContentResult? retrievedContent = retrievedContent;
         private readonly Exception? exception = exception;
 
         #endregion
@@ -32,7 +32,8 @@ namespace AMDevIT.Restling.Core
         public HttpStatusCode? StatusCode => this.statusCode;
         public bool IsSuccessful => this.ValidateIsSuccessful();
         public byte[]? RawContent => this.rawContent;
-        public object? Content => this.content;
+        public RetrievedContentResult? RetrievedContent => this.retrievedContent;
+        public string? Content => this.retrievedContent?.ToStringContent();
 
         public string? ContentType => this.contentType;
         public Charset CharSet => this.charSet;

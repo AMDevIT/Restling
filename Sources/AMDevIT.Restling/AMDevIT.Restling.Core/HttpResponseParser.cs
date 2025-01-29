@@ -41,11 +41,11 @@ namespace AMDevIT.Restling.Core
             if (resultHttpMessage != null)
             {
                 byte[] rawContent;
-                RetrieveContentResult content;
+                RetrievedContentResult retrievedContent;
                 MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
                 Charset charset = CharsetParser.Parse(contentType?.CharSet);
-                rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
-                content = RetrieveContent(rawContent, contentType);               
+                rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);                
+                retrievedContent = RetrieveContent(rawContent, contentType);               
 
                 restRequestResult = new(restRequest,                                        
                                         resultHttpMessage.StatusCode,
@@ -53,7 +53,7 @@ namespace AMDevIT.Restling.Core
                                         rawContent,
                                         contentType?.MediaType,
                                         charset,
-                                        content);
+                                        retrievedContent);
             }
             else
             {
@@ -77,7 +77,7 @@ namespace AMDevIT.Restling.Core
             {
                 byte[] rawContent;
                 T? data = default;
-                RetrieveContentResult content;
+                RetrievedContentResult content;
                 MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
                 Charset charset = CharsetParser.Parse(contentType?.CharSet);
                 rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
@@ -186,12 +186,12 @@ namespace AMDevIT.Restling.Core
             return restRequestResult;
         }
 
-        private static RetrieveContentResult RetrieveContent(byte[] rawContent,
+        private static RetrievedContentResult RetrieveContent(byte[] rawContent,
                                                              MediaTypeHeaderValue? contentType)
         {
             object? content;
             bool isBinaryData = false;
-            RetrieveContentResult contentResult;
+            RetrievedContentResult contentResult;
 
             if (contentType == null)
             {
