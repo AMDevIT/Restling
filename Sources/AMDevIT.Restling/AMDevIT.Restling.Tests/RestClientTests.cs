@@ -279,6 +279,20 @@ namespace AMDevIT.Restling.Tests
             Trace.WriteLine(restRequestResult.ToString());
         }
 
+        [TestMethod]
+        [DataRow("https://dummyimage.com/600x400/eee/aaa&text=Example", "C:\\Temp\\test.png")]
+        public async Task TestGetDownloadImage(string uri, string destinationPath)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<byte[]> restRequestResult;
+            restRequestResult = await restlingClient.GetAsync<byte[]>(uri, cancellationToken);
+            Assert.IsTrue(restRequestResult.IsSuccessful, "Request result is not succesful");
+            Assert.IsNotNull(restRequestResult.Data, "Rest response data is null");
+            Trace.WriteLine(restRequestResult.ToString());            
+            await File.WriteAllBytesAsync(destinationPath, restRequestResult.Data, cancellationToken);
+        }
+
         #endregion
     }
 }
