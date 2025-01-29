@@ -2,8 +2,10 @@
 using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Tests.Diagnostics;
 using AMDevIT.Restling.Tests.Models;
+using AMDevIT.Restling.Tests.Models.Xml;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Reflection.Metadata;
 
 namespace AMDevIT.Restling.Tests
 {
@@ -68,6 +70,25 @@ namespace AMDevIT.Restling.Tests
             stsHttpBinResponse = stRestRequestResult.Data;
             Trace.WriteLine("St response:");
             Trace.WriteLine(stsHttpBinResponse.ToString());
+        }
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/xml")]
+        public async Task TestGetXMLAsync(string uri)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<Slideshow> restRequestResult;
+            Slideshow slideshow;
+
+            restRequestResult = await restlingClient.GetAsync<Slideshow>(uri, cancellationToken);
+
+            Assert.IsNotNull(restRequestResult.Data, "Rest response data for Newtonsoft is null");
+            Trace.WriteLine($"Request result: {restRequestResult.Content}");
+
+            slideshow = restRequestResult.Data;
+            Trace.WriteLine("Slideshow response:");
+            Trace.WriteLine(slideshow.ToString());
         }
 
         [TestMethod]
