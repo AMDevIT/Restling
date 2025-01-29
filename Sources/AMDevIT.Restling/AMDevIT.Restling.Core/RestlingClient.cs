@@ -28,6 +28,8 @@ namespace AMDevIT.Restling.Core
 
         #region Properties
 
+        public HttpClientContext ClientContext => this.httpClientContext;
+
         /// <summary>
         /// Dispose the HttpClient instance when disposing the RestlingClient instance.
         /// </summary>
@@ -75,7 +77,7 @@ namespace AMDevIT.Restling.Core
         /// <param name="httpClientBuilder">The IHttpClientBuilder implementation instance that will be used to build the HttpClient associated to the current client.</param>
         public RestlingClient(IHttpClientContextBuilder httpClientBuilder)
             : this(httpClientBuilder.Build(), null)
-        {
+        {            
         }
 
         /// <summary>
