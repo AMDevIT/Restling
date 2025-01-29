@@ -1,4 +1,5 @@
 ﻿using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Network.Builders;
 
 namespace AMDevIT.Restling.Core
 {
@@ -8,6 +9,11 @@ namespace AMDevIT.Restling.Core
     public interface IRestlingClient
     {
         #region Properties
+
+        public HttpClientContext ClientContext
+        {
+            get;
+        }
 
         /// <summary>
         /// Dispose the HttpClient instance and all the handlers when disposing the RestlingClient instance.

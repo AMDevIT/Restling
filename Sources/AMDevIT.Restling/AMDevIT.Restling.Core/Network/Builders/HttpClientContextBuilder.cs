@@ -50,10 +50,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 {
                     case SocketsHttpHandler socketsHttpHandler:
                         socketsHttpHandler.CookieContainer = this.cookieContainer;
+                        socketsHttpHandler.UseCookies = true;
                         break;
 
                     case HttpClientHandler httpClientHandler:
                         httpClientHandler.CookieContainer = this.cookieContainer;
+                        httpClientHandler.UseCookies = true;
                         break;
                 }
             }
@@ -199,7 +201,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
             {
                 SocketsHttpHandler socketsHttpHandler = new()
                 {
-                    CookieContainer = this.cookieContainer
+                    CookieContainer = this.cookieContainer,
+                    UseCookies = true 
                 };
                 this.httpMessageHandler = socketsHttpHandler;
                 this.disposeHandler = true;
@@ -212,7 +215,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
                     Cookie cookie = new(cookieData.Name, cookieData.Value, cookieData.Path, cookieData.Domain);
                     this.cookieContainer.Add(cookie);
                 }
-            }
+            }           
 
             httpClient = new(this.httpMessageHandler, this.disposeHandler);
 
