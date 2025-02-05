@@ -11,7 +11,7 @@ namespace AMDevIT.Restling.Core.Network.Builders.Security.Headers
         IAuthenticationBuilder SetPassword(SecureString secureString);
         IAuthenticationBuilder SetPassword(byte[] password);
         IAuthenticationBuilder SetPassword(string password);
-        AuthenticationHeaderValue Build();
+        AuthenticationHeader Build();
 
         #endregion
     }

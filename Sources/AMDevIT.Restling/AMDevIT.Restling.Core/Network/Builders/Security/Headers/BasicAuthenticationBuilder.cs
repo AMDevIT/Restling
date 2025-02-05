@@ -1,5 +1,4 @@
 ﻿using AMDevIT.Restling.Core.Security;
-using System.Net.Http.Headers;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
@@ -32,8 +31,8 @@ namespace AMDevIT.Restling.Core.Network.Builders.Security.Headers
         #endregion
 
         #region Methods
-
-        public AuthenticationHeaderValue Build()
+        
+        public AuthenticationHeader Build()
         {
             if (string.IsNullOrWhiteSpace(this.user))
                 throw new InvalidOperationException("User is required");
@@ -42,11 +41,13 @@ namespace AMDevIT.Restling.Core.Network.Builders.Security.Headers
                 throw new InvalidOperationException("Password is required");
 
             string? headerParamsBase64 = BuildHeaderParams(this.user, this.password);
+            AuthenticationHeader authenticationHeader;
+
             if (string.IsNullOrWhiteSpace(headerParamsBase64))
                 throw new InvalidOperationException("Header params are required");
 
-            AuthenticationHeaderValue authenticationHeaderValue = new AuthenticationHeaderValue(HeaderScheme, headerParamsBase64);
-            return authenticationHeaderValue;
+            authenticationHeader = new(HeaderScheme, headerParamsBase64);
+            return authenticationHeader;
         }
 
         public IAuthenticationBuilder SetPassword(string password)
