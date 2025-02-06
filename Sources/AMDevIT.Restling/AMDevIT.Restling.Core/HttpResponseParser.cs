@@ -211,6 +211,7 @@ namespace AMDevIT.Restling.Core
                     case HttpMediaType.TextCss:
                     case HttpMediaType.TextJavascript:
                     case HttpMediaType.ImageSvgXml:
+                    case HttpMediaType.ApplicationAtomXml:
                         {
                             string stringContent = DecodeContentString(rawContent, charset);
                             content = stringContent;
@@ -240,6 +241,7 @@ namespace AMDevIT.Restling.Core
                             // This is a fallback, if the content type is not recognized.
                             // The content is returned as a byte array.
                             content = rawContent;
+                            isBinaryData = true;
                         }
                         break;
                 }
