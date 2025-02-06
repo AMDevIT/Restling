@@ -154,7 +154,7 @@ namespace AMDevIT.Restling.Core.Network.Builders.Security.Headers
                 throw new InvalidOperationException("Password is required");
 
             string headerParamsBase64;
-            byte[]? passwordBytes = password.Length > 0 ? password.ToByteArray() : [];
+            byte[]? passwordBytes = password.Length > 0 ? password.ToUtf8ByteArray() : [];
             byte[] userBytes = Encoding.UTF8.GetBytes(user);
             byte[] headerParamsBytes = new byte[userBytes.Length + 1 + passwordBytes.Length];
 

@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Security;
+using System.Text;
 
 namespace AMDevIT.Restling.Core.Security
 {
@@ -56,5 +57,35 @@ namespace AMDevIT.Restling.Core.Security
 
             throw new ArgumentNullException(nameof(secureString));
         }
+
+        internal static byte[] ToUtf8ByteArray(this SecureString secureString)
+        {
+            if (secureString == null)
+                throw new ArgumentNullException(nameof(secureString));
+
+            IntPtr ptr = IntPtr.Zero;
+            try
+            {
+                ptr = Marshal.SecureStringToBSTR(secureString);
+
+                // Leggiamo i byte UTF-16 (LE) direttamente in un array
+                int length = secureString.Length * 2; // UTF-16 usa 2 byte per carattere
+                byte[] utf16Bytes = new byte[length];
+                Marshal.Copy(ptr, utf16Bytes, 0, length);
+
+                // Convertiamo i byte UTF-16 in UTF-8 direttamente
+                byte[] utf8Bytes = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, utf16Bytes);
+
+                // Puliamo subito i dati sensibili
+                Array.Clear(utf16Bytes, 0, utf16Bytes.Length);
+                return utf8Bytes;
+            }
+            finally
+            {
+                if (ptr != IntPtr.Zero)
+                    Marshal.ZeroFreeBSTR(ptr);
+            }
+        }
+
     }
 }
