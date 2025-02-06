@@ -5,6 +5,7 @@
         #region Consts
 
         #region Application Media Types
+
         public const string ApplicationJson = "application/json";
         public const string ApplicationXml = "application/xml";
         public const string ApplicationOctetStream = "application/octet-stream";
@@ -14,6 +15,8 @@
         public const string ApplicationJavascript = "application/javascript";
         public const string ApplicationProblemJson = "application/problem+json";
         public const string ApplicationProblemXml = "application/problem+xml";
+        public const string ApplicationAtomXml = "application/atom+xml";
+
         #endregion
 
         #region Text Media Types

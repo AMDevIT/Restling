@@ -1,6 +1,7 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Http.Headers;
 
 namespace AMDevIT.Restling.Core.Network.Builders
 {
@@ -33,6 +34,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
         HttpClientContextBuilder ClearDefaultHeaders();
         HttpClientContextBuilder AddUserAgent(string? userAgent);
         HttpClientContextBuilder AddAuthenticationHeader(string scheme, string parameter);
+        HttpClientContextBuilder AddAuthenticationHeader(AuthenticationHeaderValue authenticationHeaderValue);
+        HttpClientContextBuilder AddAuthenticationHeader(AuthenticationHeader authenticationHeader);
         HttpClientContextBuilder RemoveAuthenticationHeader();
 
         #endregion

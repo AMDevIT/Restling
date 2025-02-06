@@ -172,6 +172,22 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this;
         }
 
+        public HttpClientContextBuilder AddAuthenticationHeader(AuthenticationHeaderValue authenticationHeaderValue)
+        {
+            ArgumentNullException.ThrowIfNull(authenticationHeaderValue, "Authentication header cannot be null");
+            AuthenticationHeader authenticationHeader = new(authenticationHeaderValue.Scheme, 
+                                                            authenticationHeaderValue.Parameter ?? string.Empty);
+            this.authenticationHeader = authenticationHeader;
+            return this;
+        }
+
+        public HttpClientContextBuilder AddAuthenticationHeader(AuthenticationHeader authenticationHeader)
+        {
+            ArgumentNullException.ThrowIfNull(authenticationHeader, "Authentication header cannot be null");
+            this.authenticationHeader = authenticationHeader;
+            return this;
+        }
+
         public HttpClientContextBuilder RemoveAuthenticationHeader()
         {
             this.authenticationHeader = null;

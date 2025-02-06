@@ -1,7 +1,10 @@
 ﻿using AMDevIT.Restling.Core;
 using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Network.Builders;
+using AMDevIT.Restling.Core.Network.Builders.Security.Headers;
 using AMDevIT.Restling.Tests.Diagnostics;
 using AMDevIT.Restling.Tests.Models;
+using AMDevIT.Restling.Tests.Models.Authentication;
 using AMDevIT.Restling.Tests.Models.Xml;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -283,7 +286,7 @@ namespace AMDevIT.Restling.Tests
         }
 
 
-        #endregion
+        
 
         [TestMethod]
         [DataRow("https://httpbin.org/get", "1234")]
@@ -313,6 +316,37 @@ namespace AMDevIT.Restling.Tests
             Trace.WriteLine(restRequestResult.ToString());            
             await File.WriteAllBytesAsync(destinationPath, restRequestResult.Data, cancellationToken);
         }
+
+        #endregion
+
+        #region Authentications
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/basic-auth", "user", "passwd")]
+        public async Task TestBasicAuthentication(string uri, string user, string password)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            HttpClientContextBuilder httpClientContextBuilder = new();
+            RestlingClient restlingClient;
+            RestRequestResult<BasicAuthResult> restRequestResult;
+            string requestUri = $"{uri}/{user}/{password}";
+            AuthenticationHeader authenticationHeader;
+            BasicAuthenticationBuilder basicAuthenticationBuilder = new();
+
+            basicAuthenticationBuilder.SetUser(user);
+            basicAuthenticationBuilder.SetPassword(password);
+            authenticationHeader = basicAuthenticationBuilder.Build();
+
+            httpClientContextBuilder.AddAuthenticationHeader(authenticationHeader);
+
+            restlingClient = new (httpClientContextBuilder, this.logger);
+            restRequestResult = await restlingClient.GetAsync<BasicAuthResult>(requestUri, cancellationToken);
+            Assert.IsTrue(restRequestResult.IsSuccessful, $"Request result is not succesful. Result: {restRequestResult}");
+            Assert.IsNotNull(restRequestResult.Data, $"Rest response data is null. Result: {restRequestResult}");
+            Trace.WriteLine(restRequestResult.ToString());
+        }
+
+        #endregion
 
         #endregion
     }
