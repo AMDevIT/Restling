@@ -108,6 +108,7 @@ namespace AMDevIT.Restling.Core
                                 }
                                 break;
 
+                            case HttpMediaType.ApplicationAtomXml:
                             case HttpMediaType.ApplicationXml:
                             case HttpMediaType.TextXml:
                                 try
