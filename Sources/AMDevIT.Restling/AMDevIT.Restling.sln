@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMDevIT.Restling.Core", "AM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMDevIT.Restling.Tests", "AMDevIT.Restling.Tests\AMDevIT.Restling.Tests.csproj", "{98ECACE1-BE5A-4248-BFA3-09E3B2DEDD51}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{6C83A596-D32D-B35F-00DD-F0C99B673980}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{E0F14E3E-D4C9-4300-864E-AE9EA109A97A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F2071889-BDF6-4E1F-ACF1-8C35BA432F1A} = {6C83A596-D32D-B35F-00DD-F0C99B673980}
+		{98ECACE1-BE5A-4248-BFA3-09E3B2DEDD51} = {E0F14E3E-D4C9-4300-864E-AE9EA109A97A}
 	EndGlobalSection
 EndGlobal

@@ -25,6 +25,15 @@ namespace AMDevIT.Restling.Core
             set => this.requestData = value;
         }
 
+        /// <summary>
+        /// Request content body media type. Can be use to force the media type for the server.
+        /// </summary>
+        public string? ContentMediaType
+        {
+            get;
+            set;
+        }
+
         #endregion
 
         #region .ctor

@@ -596,16 +596,7 @@ namespace AMDevIT.Restling.Core
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
-
-/* Modifica senza merge dal progetto 'AMDevIT.Restling.Core (net8.0)'
-Prima:
-            httpRequest = this.BuildHttpRequestMessage(restRequest);                   
-            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
-Dopo:
             httpRequest = BuildHttpRequestMessage(restRequest);                   
-            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
-*/
-            httpRequest = RestlingClient.BuildHttpRequestMessage(restRequest);                   
             restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
             return restRequestResult;
         }
@@ -630,15 +621,6 @@ Dopo:
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
-
-/* Modifica senza merge dal progetto 'AMDevIT.Restling.Core (net8.0)'
-Prima:
-            httpRequest = this.BuildHttpRequestMessage(restRequest);           
-            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
-Dopo:
-            httpRequest = BuildHttpRequestMessage(restRequest);           
-            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
-*/
             httpRequest = RestlingClient.BuildHttpRequestMessage(restRequest);           
             restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
             return restRequestResult;
@@ -762,17 +744,22 @@ Dopo:
         /// </summary>
 
 
-        protected HttpContent BuildHttpContent<T>(T requestData)
+        protected HttpContent BuildHttpContent<T>(T requestData, string? requestContentMediaType = null)
         {
             HttpContent content;
 
             if (requestData == null)
-                content = new StringContent(string.Empty, Encoding.UTF8, HttpMediaType.ApplicationJson);
+                content = new StringContent(string.Empty);
             else
             {
                 JsonSerialization jsonSerialization = new(this.Logger);
                 string jsonContent = jsonSerialization.Serialize(requestData);
-                content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                string? mediaType = requestContentMediaType;
+
+                if (string.IsNullOrWhiteSpace(mediaType))
+                    mediaType = HttpMediaType.ApplicationJson;
+
+                content = new StringContent(jsonContent, Encoding.UTF8, mediaType);
             }
 
             return content;
@@ -850,7 +837,10 @@ Dopo:
             }
 
             if (restRequest.RequestData != null)
+            {
+                if (!string.IsNullOrWhiteSpace(restRequest.ContentMediaType))
                 httpRequest.Content = this.BuildHttpContent<T>(restRequest.RequestData);
+            }
 
             return httpRequest;
         }
