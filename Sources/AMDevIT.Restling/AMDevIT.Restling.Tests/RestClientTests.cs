@@ -8,7 +8,6 @@ using AMDevIT.Restling.Tests.Models.Authentication;
 using AMDevIT.Restling.Tests.Models.Xml;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Reflection.Metadata;
 
 namespace AMDevIT.Restling.Tests
 {

@@ -44,6 +44,12 @@ namespace AMDevIT.Restling.Core
         /// </summary>
         public bool Disposed => this.disposedValue;
 
+        public bool EnableVerboseLogging
+        {
+            get;
+            set;
+        } = true;
+
         protected HttpClientContext Context => this.httpClientContext;
         protected ILogger? Logger => this.logger;
 
@@ -153,7 +159,7 @@ namespace AMDevIT.Restling.Core
                                           HttpMethod.Get,
                                           requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -168,7 +174,7 @@ namespace AMDevIT.Restling.Core
                                           HttpMethod.Get,
                                           requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -322,7 +328,7 @@ namespace AMDevIT.Restling.Core
                                              requestData,
                                              requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -339,7 +345,7 @@ namespace AMDevIT.Restling.Core
                                              requestData,
                                              requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync<D,T>(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync<D,T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
 
         }
@@ -442,7 +448,7 @@ namespace AMDevIT.Restling.Core
                                              requestData,
                                              requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -459,7 +465,7 @@ namespace AMDevIT.Restling.Core
                                              requestData,
                                              requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync<D, T>(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync<D, T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -556,7 +562,7 @@ namespace AMDevIT.Restling.Core
                                           HttpMethod.Delete,
                                           requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -571,7 +577,7 @@ namespace AMDevIT.Restling.Core
                                           HttpMethod.Delete,
                                           requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -587,7 +593,8 @@ namespace AMDevIT.Restling.Core
         /// an argument exception will be throw.</exception>
         /// <exception cref="NotSupportedException">If a http method different from Get, Post, Put, Delete, Head, 
         /// Options, Trace, Patch or Custom a NotSupportedException will be throw.</exception>
-        public async Task<RestRequestResult> ExecuteRequestAsync(RestRequest restRequest, 
+        public async Task<RestRequestResult> ExecuteRequestAsync(RestRequest restRequest,
+                                                                 bool throwOnGenerics = true,
                                                                  CancellationToken cancellationToken = default)
         {
             HttpRequestMessage httpRequest;
@@ -596,17 +603,11 @@ namespace AMDevIT.Restling.Core
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
-
-/* Modifica senza merge dal progetto 'AMDevIT.Restling.Core (net8.0)'
-Prima:
-            httpRequest = this.BuildHttpRequestMessage(restRequest);                   
-            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
-Dopo:
             httpRequest = BuildHttpRequestMessage(restRequest);                   
-            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
-*/
-            httpRequest = RestlingClient.BuildHttpRequestMessage(restRequest);                   
-            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, 
+                                                                       httpRequest, 
+                                                                       throwOnGenerics: throwOnGenerics, 
+                                                                       cancellationToken);
             return restRequestResult;
         }
 
@@ -622,6 +623,7 @@ Dopo:
         /// <exception cref="NotSupportedException">If a http method different from Get, Post, Put, Delete, Head, 
         /// Options, Trace, Patch or Custom a NotSupportedException will be throw.</exception>
         public async Task<RestRequestResult<T>> ExecuteRequestAsync<T>(RestRequest restRequest,
+                                                                       bool throwOnGenerics = false,
                                                                        CancellationToken cancellationToken = default)
         {   
             HttpRequestMessage httpRequest;
@@ -630,17 +632,14 @@ Dopo:
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
+            //if (restRequest.GetType().IsGenericType == true)
+            //    throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
 
-/* Modifica senza merge dal progetto 'AMDevIT.Restling.Core (net8.0)'
-Prima:
             httpRequest = this.BuildHttpRequestMessage(restRequest);           
-            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
-Dopo:
-            httpRequest = BuildHttpRequestMessage(restRequest);           
-            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
-*/
-            httpRequest = RestlingClient.BuildHttpRequestMessage(restRequest);           
-            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, httpRequest, cancellationToken);
+            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, 
+                                                                          httpRequest,
+                                                                          throwOnGenerics: throwOnGenerics,
+                                                                          cancellationToken);
             return restRequestResult;
         }
 
@@ -657,6 +656,7 @@ Dopo:
         /// <exception cref="NotSupportedException">If a http method different from Get, Post, Put, Delete, Head, 
         /// Options, Trace, Patch or Custom a NotSupportedException will be throw.</exception>
         public async Task<RestRequestResult<D>> ExecuteRequestAsync<D, T>(RestRequest<T> restRequest,
+                                                                          bool throwOnGenerics = false,
                                                                           CancellationToken cancellationToken = default)
         {
             HttpRequestMessage httpRequest;
@@ -665,8 +665,11 @@ Dopo:
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
-            httpRequest = this.BuildHttpRequestMessage<T>(restRequest);
-            restRequestResult = await this.ExecuteRequestInternalAsync<D>(restRequest, httpRequest, cancellationToken);
+            httpRequest = this.BuildHttpRequestMessageWithPayload<T>(restRequest);
+            restRequestResult = await this.ExecuteRequestInternalAsync<D>(restRequest, 
+                                                                          httpRequest, 
+                                                                          throwOnGenerics: throwOnGenerics, 
+                                                                          cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -678,6 +681,7 @@ Dopo:
 
         protected async Task<RestRequestResult> ExecuteRequestInternalAsync(RestRequest restRequest,
                                                                             HttpRequestMessage httpRequest,
+                                                                            bool throwOnGenerics = false,
                                                                             CancellationToken cancellationToken = default)
         {
             HttpResponseParser httpResponseParser = new(this.Logger);
@@ -685,6 +689,12 @@ Dopo:
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
             TimeSpan elapsed;
+
+            if (throwOnGenerics == true)
+            {
+                if (restRequest.GetType().IsGenericType == true)
+                    throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
+            }
 
             try
             {
@@ -710,7 +720,8 @@ Dopo:
         }
 
         protected async Task<RestRequestResult<T>> ExecuteRequestInternalAsync<T>(RestRequest restRequest, 
-                                                                                  HttpRequestMessage httpRequest, 
+                                                                                  HttpRequestMessage httpRequest,
+                                                                                  bool throwOnGenerics = false,
                                                                                   CancellationToken cancellationToken = default)
         {
             HttpResponseParser httpResponseParser = new(this.Logger);
@@ -718,6 +729,12 @@ Dopo:
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
             TimeSpan elapsed;
+
+            if (throwOnGenerics == true)
+            {
+                if (restRequest.GetType().IsGenericType == true)
+                    throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
+            }
 
             try
             {
@@ -742,6 +759,9 @@ Dopo:
             return restRequestResult;
         }
 
+        /// <summary>
+        /// Dispose the HttpClient instance and all the handlers when disposing the RestlingClient instance, if <see cref="DisposeContext"/> is set to true.
+        /// </summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -755,30 +775,44 @@ Dopo:
                 }
                 this.disposedValue = true;
             }
-        }
+        }       
 
-        /// <summary>
-        /// Dispose the HttpClient instance and all the handlers when disposing the RestlingClient instance, if <see cref="DisposeContext"/> is set to true.
-        /// </summary>
-
-
-        protected HttpContent BuildHttpContent<T>(T requestData)
+        protected HttpContent BuildHttpContent<T>(T requestData, string? requestContentMediaType = null)
         {
             HttpContent content;
 
+            if (this.EnableVerboseLogging)
+                this.Logger?.LogTrace("Build http request content.");
+
             if (requestData == null)
-                content = new StringContent(string.Empty, Encoding.UTF8, HttpMediaType.ApplicationJson);
+            {
+                if (this.EnableVerboseLogging)
+                    this.Logger?.LogTrace("Request data is null. An empty string content will be added to the request.");
+
+                content = new StringContent(string.Empty);
+            }
             else
             {
                 JsonSerialization jsonSerialization = new(this.Logger);
                 string jsonContent = jsonSerialization.Serialize(requestData);
-                content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                string? mediaType = requestContentMediaType;
+
+                if (string.IsNullOrWhiteSpace(mediaType))
+                    mediaType = HttpMediaType.ApplicationJson;
+
+                if (this.EnableVerboseLogging)
+                {
+                    this.Logger?.LogTrace("A content of type {mediaType} will be added to the request containing the serialization of the request data.", mediaType);
+                    this.Logger?.LogTrace("Serialized request data: {serializedData}", jsonContent);
+                }
+
+                content = new StringContent(jsonContent, Encoding.UTF8, mediaType);
             }
 
             return content;
         }
 
-        protected static HttpRequestMessage BuildHttpRequestMessage(RestRequest restRequest)
+        protected HttpRequestMessage BuildHttpRequestMessage(RestRequest restRequest)
         {
             HttpRequestMessage httpRequest;
             NetHttpMethod requestHttpMethod;
@@ -798,59 +832,43 @@ Dopo:
                 _ => throw new NotSupportedException($"The HTTP method {restRequest.Method} is not supported.")
             };
 
+            if (this.EnableVerboseLogging)
+                this.Logger?.LogTrace("Building request {httpRequestVerb} for uri {requestUri}", requestHttpMethod, restRequest.Uri);
+
             httpRequest = new HttpRequestMessage(requestHttpMethod, restRequest.Uri);
 
             if (restRequest.Headers.AuthenticationHeader != null)
+            {                
                 httpRequest.Headers.Authorization = new AuthenticationHeaderValue(restRequest.Headers.AuthenticationHeader.Scheme,
                                                                                   restRequest.Headers.AuthenticationHeader.Parameter);
+
+                if (this.EnableVerboseLogging)
+                    this.Logger?.LogTrace("Authentication header set to {authHeader}", httpRequest.Headers.Authorization.ToString());
+            }            
 
             if (restRequest.Headers.Headers.Count > 0)
             {
                 foreach (KeyValuePair<string, string> header in restRequest.Headers.Headers)
                 {
                     httpRequest.Headers.Add(header.Key, header.Value);
+                    if (this.EnableVerboseLogging)
+                        this.Logger?.LogTrace("Added header {headerKey} with value {headerValue}", header.Key, header.Value);
                 }
             }
 
             return httpRequest;
         }
 
-        protected HttpRequestMessage BuildHttpRequestMessage<T>(RestRequest<T> restRequest)
+        protected HttpRequestMessage BuildHttpRequestMessageWithPayload<T>(RestRequest<T> restRequest)
         {
-            HttpRequestMessage httpRequest;
-            NetHttpMethod requestHttpMethod;
+            HttpRequestMessage httpRequest;         
 
-            requestHttpMethod = restRequest.Method switch
-            {
-                HttpMethod.Get => NetHttpMethod.Get,
-                HttpMethod.Post => NetHttpMethod.Post,
-                HttpMethod.Put => NetHttpMethod.Put,
-                HttpMethod.Delete => NetHttpMethod.Delete,
-                HttpMethod.Head => NetHttpMethod.Head,
-                HttpMethod.Options => NetHttpMethod.Options,
-                HttpMethod.Trace => NetHttpMethod.Trace,
-                HttpMethod.Patch => NetHttpMethod.Patch,
-                HttpMethod.Custom => new NetHttpMethod(restRequest.CustomMethod ??
-                                                       throw new ArgumentException("Custom method cannot be null")),
-                _ => throw new NotSupportedException($"The HTTP method {restRequest.Method} is not supported.")
-            };
-
-            httpRequest = new HttpRequestMessage(requestHttpMethod, restRequest.Uri);
-
-            if (restRequest.Headers.AuthenticationHeader != null)
-                httpRequest.Headers.Authorization = new AuthenticationHeaderValue(restRequest.Headers.AuthenticationHeader.Scheme,
-                                                                                  restRequest.Headers.AuthenticationHeader.Parameter);
-
-            if (restRequest.Headers.Headers.Count > 0)
-            {
-                foreach (KeyValuePair<string, string> header in restRequest.Headers.Headers)
-                {
-                    httpRequest.Headers.Add(header.Key, header.Value);
-                }
-            }
+            httpRequest = this.BuildHttpRequestMessage(restRequest);
 
             if (restRequest.RequestData != null)
-                httpRequest.Content = this.BuildHttpContent<T>(restRequest.RequestData);
+            {
+                httpRequest.Content = this.BuildHttpContent<T>(restRequest.RequestData, requestContentMediaType: restRequest.ContentMediaType);
+            }
 
             return httpRequest;
         }

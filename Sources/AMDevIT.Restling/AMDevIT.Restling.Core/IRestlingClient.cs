@@ -166,10 +166,13 @@ namespace AMDevIT.Restling.Core
         #region Generic execution methods
 
         Task<RestRequestResult> ExecuteRequestAsync(RestRequest restRequest,
+                                                    bool throwOnGenerics = true,
                                                     CancellationToken cancellationToken = default);
         Task<RestRequestResult<T>> ExecuteRequestAsync<T>(RestRequest restRequest,
+                                                          bool throwOnGenerics = false,
                                                           CancellationToken cancellationToken = default);
         Task<RestRequestResult<D>> ExecuteRequestAsync<D, T>(RestRequest<T> restRequest,
+                                                             bool throwOnGenerics = false,
                                                              CancellationToken cancellationToken = default);
 
         #endregion

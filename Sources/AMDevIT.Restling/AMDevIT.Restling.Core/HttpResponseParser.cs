@@ -44,10 +44,10 @@ namespace AMDevIT.Restling.Core
                 RetrievedContentResult retrievedContent;
                 MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
                 Charset charset = CharsetParser.Parse(contentType?.CharSet);
-                rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);                
-                retrievedContent = RetrieveContent(rawContent, contentType);               
+                rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
+                retrievedContent = RetrieveContent(rawContent, contentType);
 
-                restRequestResult = new(restRequest,                                        
+                restRequestResult = new(restRequest,
                                         resultHttpMessage.StatusCode,
                                         elapsed,
                                         rawContent,
@@ -84,89 +84,53 @@ namespace AMDevIT.Restling.Core
                 content = RetrieveContent(rawContent, contentType);
 
                 // Response received.
-                if (resultHttpMessage.IsSuccessStatusCode)
+
+                try
                 {
-                    if (typeof(T) == typeof(byte[]))
-                        data = (T)(object)rawContent;
-                    else
+                    data = typeof(T) switch
                     {
-                        // Try decoding data.
-                        switch (contentType?.MediaType)
-                        {
-                            case HttpMediaType.ApplicationJson:
-                                try
-                                {
-                                    if (content.Content is string json)
-                                    {
-                                        JsonSerialization jsonSerialization = new(this.Logger);
-                                        data = jsonSerialization.Deserialize<T>(json);
-                                    }
-                                }
-                                catch (Exception exc)
-                                {
-                                    this.Logger?.LogError(exc, "Failed to deserialize JSON content.");
-                                }
-                                break;
+                        Type t when t == typeof(byte[]) => (T)(object)rawContent,
 
-                            case HttpMediaType.ApplicationAtomXml:
-                            case HttpMediaType.ApplicationXml:
-                            case HttpMediaType.TextXml:
-                                try
-                                {
-                                    if (content.Content is string xml)
-                                    {
-                                        XmlSerializer serializer = new(typeof(T));
-                                        using var stringReader = new StringReader(xml);
-                                        data = (T?)serializer.Deserialize(stringReader);
-                                    }
-                                }
-                                catch (Exception exc)
-                                {
-                                    this.Logger?.LogError(exc, "Failed to deserialize XML content.");
-                                }
-                                break;
+                        Type t when t == typeof(string) => (T)(object)(
+                            content.IsBinaryData == true
+                                ? Convert.ToBase64String(rawContent)
+                                : content.Content?.ToString() ?? string.Empty
+                        ),
 
-                            default:
-                                // If it's a string or other primitive, try to parse it.
-                                if (typeof(T) == typeof(string))
-                                {
-                                    string dataString;
+                        Type t when t.IsPrimitive => ConvertPrimitive<T>(content.Content),
 
-                                    if (content.IsBinaryData == true)
-                                        dataString = Convert.ToBase64String(rawContent);
-                                    else
-                                        dataString = content.Content?.ToString() ?? string.Empty;
-
-                                    data = (T)(object)dataString;
-                                }
-                                else if (typeof(T).IsPrimitive)
-                                {
-                                    try
-                                    {
-                                        if (content.Content != null)
-                                            data = (T)Convert.ChangeType(content.Content, typeof(T));
-                                        else
-                                            data = default;
-                                    }
-                                    catch (Exception convertEx)
-                                    {
-                                        this.Logger?.LogError(convertEx, "Failed to convert content to primitive type.");
-                                    }
-                                }
-                                else
-                                {
-                                    // Unsupported content type or decoding type.
-                                    this.Logger?.LogWarning("Unsupported media type: {MediaType}", contentType?.MediaType);
-                                }
-                                break;
-
-                        }
-                    }
+                        _ => this.DecodeData<T>(rawContent, content, contentType)
+                    };
                 }
-                else
+                catch (Exception)
                 {
-                    // Maybe it's good to decode the content anyway.
+                    if (resultHttpMessage.IsSuccessStatusCode)
+                        throw;
+                    // If not, ignore the exception.
                 }
+
+                //if (resultHttpMessage.IsSuccessStatusCode)
+                //{
+                //    data = typeof(T) switch
+                //    {
+                //        Type t when t == typeof(byte[]) => (T)(object)rawContent,
+
+                //        Type t when t == typeof(string) => (T)(object)(
+                //            content.IsBinaryData == true
+                //                ? Convert.ToBase64String(rawContent)
+                //                : content.Content?.ToString() ?? string.Empty
+                //        ),
+
+                //        Type t when t.IsPrimitive => ConvertPrimitive<T>(content.Content),
+
+                //        _ => this.DecodeData<T>(rawContent, content, contentType)
+                //    };
+                //}
+                //else
+                //{
+                //    // Maybe it's good to decode the content anyway. But this time ignoring the exceptions?
+                    
+                //}
 
                 restRequestResult = new(restRequest,
                                         data,
@@ -179,7 +143,7 @@ namespace AMDevIT.Restling.Core
             }
             else
             {
-                HttpClientException httpClientException = new ("Http response object is null");
+                HttpClientException httpClientException = new("Http response object is null");
                 restRequestResult = new(restRequest, httpClientException, elapsed);
                 this.Logger?.LogError(httpClientException, "Http response object is null");
             }
@@ -187,8 +151,100 @@ namespace AMDevIT.Restling.Core
             return restRequestResult;
         }
 
+        private T? RetrievePrimitiveType<T>(byte[] rawContent, RetrievedContentResult content, MediaTypeHeaderValue? contentType)
+        {
+            T? data = typeof(T) switch
+            {
+                Type t when t == typeof(byte[]) => (T)(object)rawContent,
+
+                Type t when t == typeof(string) => (T)(object)(
+                    content.IsBinaryData == true
+                        ? Convert.ToBase64String(rawContent)
+                        : content.Content?.ToString() ?? string.Empty
+                ),
+
+                Type t when t.IsPrimitive => ConvertPrimitive<T>(content.Content),
+
+                _ => this.LogAndReturnDefault<T>(contentType?.MediaType)
+            };
+
+            return data;
+        }
+
+
+        private T? DecodeData<T>(byte[] rawContent, RetrievedContentResult content, MediaTypeHeaderValue? contentType)
+        {
+            T? data = default;
+
+            // Try decoding data.
+            switch (contentType?.MediaType)
+            {
+                case HttpMediaType.ApplicationJson:
+                    try
+                    {
+                        if (content.Content is string json)
+                        {
+                            JsonSerialization jsonSerialization = new(this.Logger);
+                            data = jsonSerialization.Deserialize<T>(json);
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        this.Logger?.LogError(exc, "Failed to deserialize JSON content.");
+                    }
+                    break;
+
+                case HttpMediaType.ApplicationAtomXml:
+                case HttpMediaType.ApplicationXml:
+                case HttpMediaType.TextXml:
+                    try
+                    {
+                        if (content.Content is string xml)
+                        {
+                            XmlSerializer serializer = new(typeof(T));
+                            using var stringReader = new StringReader(xml);
+                            data = (T?)serializer.Deserialize(stringReader);
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        this.Logger?.LogError(exc, "Failed to deserialize XML content.");
+                    }
+                    break;
+
+                default:
+                    // If it's a string or other primitive, try to parse it.
+                    data = this.RetrievePrimitiveType<T>(rawContent, content, contentType);
+                    break;
+
+            }
+
+            return data;
+        }
+
+
+        private T? ConvertPrimitive<T>(object? content)
+        {
+            try
+            {
+                return content != null ? (T)Convert.ChangeType(content, typeof(T)) : default;
+            }
+            catch (Exception convertEx)
+            {
+                // Assumendo che Logger sia disponibile nel contesto
+                this.Logger?.LogError(convertEx, "Failed to convert content to primitive type.");
+                return default;
+            }
+        }
+
+        private T? LogAndReturnDefault<T>(string? mediaType)
+        {
+            this.Logger?.LogWarning("Unsupported media type: {MediaType}", mediaType);
+            return default;
+        }
+
         private static RetrievedContentResult RetrieveContent(byte[] rawContent,
-                                                             MediaTypeHeaderValue? contentType)
+                                                                      MediaTypeHeaderValue? contentType)
         {
             object? content;
             bool isBinaryData = false;
