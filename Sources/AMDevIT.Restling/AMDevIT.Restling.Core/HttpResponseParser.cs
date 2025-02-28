@@ -3,12 +3,9 @@ using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Core.Serialization;
 using AMDevIT.Restling.Core.Text;
 using Microsoft.Extensions.Logging;
-using System.Data.Common;
 using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Text;
 using System.Xml.Serialization;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AMDevIT.Restling.Core
 {
