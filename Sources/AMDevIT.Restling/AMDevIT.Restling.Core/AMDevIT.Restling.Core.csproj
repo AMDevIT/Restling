@@ -15,7 +15,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/AMDevIT/Restling.git</RepositoryUrl>
     <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
-    <AssemblyVersion>1.0.17.80</AssemblyVersion>
+    <AssemblyVersion>1.0.18.10</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <PackageReleaseNotes>Added application/atom+xml mediatype for direct XML deserialization. Fixed a behavior where the default raw content isn't flagged as binary. Added the read behavior for atom+xml.
 </PackageReleaseNotes>

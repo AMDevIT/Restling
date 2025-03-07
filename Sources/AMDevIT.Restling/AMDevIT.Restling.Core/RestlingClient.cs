@@ -31,6 +31,17 @@ namespace AMDevIT.Restling.Core
         public HttpClientContext ClientContext => this.httpClientContext;
 
         /// <summary>
+        /// Allow to force the serialization library to use when serializing the payload data.
+        /// </summary>
+        /// <remarks>Default to aumetic, that uses reflection to check for attributes 
+        /// from System.Text.Json or NewtonSoft JSON into the class or interface.</remarks>
+        public PayloadJsonSerializerLibrary SelectedDefaultSerializationLibrary
+        {
+            get;
+            set;
+        } = PayloadJsonSerializerLibrary.Automatic;
+
+        /// <summary>
         /// Dispose the HttpClient instance when disposing the RestlingClient instance.
         /// </summary>
         public bool DisposeContext
@@ -165,6 +176,7 @@ namespace AMDevIT.Restling.Core
 
         public async Task<RestRequestResult<T>> GetAsync<T>(string uri,
                                                             RequestHeaders requestHeaders,
+                                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                             CancellationToken cancellationToken = default)
         {
             RestRequest restRequest;
@@ -173,6 +185,9 @@ namespace AMDevIT.Restling.Core
             restRequest = new RestRequest(uri,
                                           HttpMethod.Get,
                                           requestHeaders);
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
 
             restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
@@ -183,9 +198,12 @@ namespace AMDevIT.Restling.Core
         /// </summary>
         /// <typeparam name="T">A primitive type or a model to which the result content body will be parsed to</typeparam>
         /// <param name="uri">The request resource URI</param>
+        /// <param name="forcePayloadJsonSerializerLibrary">Force the json libary used to serialize and deserialize content. Default to null, equivalent to automatic.</param>
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
-        public async Task<RestRequestResult<T>> GetAsync<T>(string uri, CancellationToken cancellationToken = default)
+        public async Task<RestRequestResult<T>> GetAsync<T>(string uri, 
+                                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null, 
+                                                            CancellationToken cancellationToken = default)
         {
             HttpResponseMessage? resultHttpMessage = null;
             RestRequest restRequest;
@@ -198,6 +216,9 @@ namespace AMDevIT.Restling.Core
                                           HttpMethod.Get,
                                           null);
 
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;            
+
             try
             {
                 this.Logger?.LogDebug("Executing GET REST request to {uri}", uri);
@@ -206,7 +227,7 @@ namespace AMDevIT.Restling.Core
                 stopwatch.Stop();
                 this.Logger?.LogDebug("GET REST request to {uri} executed in {elapsed} ms", uri, stopwatch.ElapsedMilliseconds);
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 if (stopwatch.IsRunning)
                     stopwatch.Stop();
@@ -219,7 +240,11 @@ namespace AMDevIT.Restling.Core
                 elapsed = stopwatch.Elapsed;
             }
             
-            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, 
+                                                                        restRequest, 
+                                                                        elapsed,
+                                                                        payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                                        cancellationToken);
             return restRequestResult;
         }
 
@@ -233,10 +258,14 @@ namespace AMDevIT.Restling.Core
         /// <typeparam name="D">The request body payload model type</typeparam>
         /// <typeparam name="T">A primitive type or a model to which the result content body will be parsed to</typeparam>
         /// <param name="uri">The request resource URI</param>
-        /// <param name="requestData"></param>
+        /// <param name="requestData">The request data payload</param>
+        /// <param name="forcePayloadJsonSerializerLibrary">Force the json libary used to serialize and deserialize content. Default to null, equivalent to automatic.</param>
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
-        public async Task<RestRequestResult> PostAsync<T>(string uri, T requestData, CancellationToken cancellationToken = default)
+        public async Task<RestRequestResult> PostAsync<T>(string uri, 
+                                                          T requestData,
+                                                          PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
+                                                          CancellationToken cancellationToken = default)
         {
             HttpResponseMessage? resultHttpMessage = null;
             RestRequest restRequest;
@@ -244,12 +273,18 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
             HttpResponseParser httpResponseParser = new(this.Logger);
+
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Post,
-                                             requestData);
+                                             requestData);            
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData);
+                HttpContent content = this.BuildHttpContent(requestData, 
+                                                            payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PostAsync(uri, content, cancellationToken);
                 stopwatch.Stop();
@@ -266,7 +301,10 @@ namespace AMDevIT.Restling.Core
                 elapsed = stopwatch.Elapsed;
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, 
+                                                                     restRequest, 
+                                                                     elapsed, 
+                                                                     cancellationToken);
             return restRequestResult;
         }
 
@@ -276,11 +314,13 @@ namespace AMDevIT.Restling.Core
         /// <typeparam name="D">The request body payload model type</typeparam>
         /// <typeparam name="T">A primitive type or a model to which the result content body will be parsed to</typeparam>
         /// <param name="uri">The request resource URI</param>
-        /// <param name="requestData"></param>
+        /// <param name="requestData">The request data payload</param>
+        /// <param name="forcePayloadJsonSerializerLibrary">Force the json libary used to serialize and deserialize content. Default to null, equivalent to automatic.</param>
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
         public async Task<RestRequestResult<D>> PostAsync<D, T>(string uri, 
-                                                                T requestData, 
+                                                                T requestData,
+                                                                PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                                 CancellationToken cancellationToken = default)
         {
             HttpResponseMessage? resultHttpMessage = null;
@@ -289,12 +329,18 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
             HttpResponseParser httpResponseParser = new(this.Logger);
+
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Post,
                                              requestData);
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData);
+                HttpContent content = this.BuildHttpContent(requestData, 
+                                                            payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PostAsync(uri, content, cancellationToken);
                 stopwatch.Stop();
@@ -311,13 +357,18 @@ namespace AMDevIT.Restling.Core
                 elapsed = stopwatch.Elapsed;
             }         
 
-            restRequestResult = await httpResponseParser.DecodeAsync<D>(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            restRequestResult = await httpResponseParser.DecodeAsync<D>(resultHttpMessage, 
+                                                                        restRequest, 
+                                                                        elapsed,
+                                                                        payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                                        cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
         public async Task<RestRequestResult> PostAsync<T>(string uri, 
                                                           T requestData,
                                                           RequestHeaders requestHeaders,
+                                                          PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                           CancellationToken cancellationToken = default)
         {
             RestRequest<T> restRequest;
@@ -328,13 +379,18 @@ namespace AMDevIT.Restling.Core
                                              requestData,
                                              requestHeaders);
 
-            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+
+            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest,                 
+                                                                  cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
         public async Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
                                                                 T requestData,
                                                                 RequestHeaders requestHeaders,
+                                                                PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                                 CancellationToken cancellationToken = default)
         {
             RestRequest<T> restRequest;
@@ -344,6 +400,8 @@ namespace AMDevIT.Restling.Core
                                              HttpMethod.Post,
                                              requestData,
                                              requestHeaders);
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
 
             restRequestResult = await this.ExecuteRequestAsync<D,T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
@@ -356,6 +414,7 @@ namespace AMDevIT.Restling.Core
 
         public async Task<RestRequestResult> PutAsync<T>(string uri,
                                                          T requestData,
+                                                         PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                          CancellationToken cancellationToken = default)
         {
             HttpResponseMessage? resultHttpMessage = null;
@@ -364,12 +423,17 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
             HttpResponseParser httpResponseParser = new(this.Logger);
+
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Put,
                                              requestData);
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData);
+                HttpContent content = this.BuildHttpContent(requestData, payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PutAsync(uri, content, cancellationToken);
                 stopwatch.Stop();
@@ -400,7 +464,8 @@ namespace AMDevIT.Restling.Core
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
         public async Task<RestRequestResult<D>> PutAsync<D, T>(string uri, 
-                                                               T requestData, 
+                                                               T requestData,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                                CancellationToken cancellationToken = default)
         {
             HttpResponseMessage? resultHttpMessage = null;
@@ -409,12 +474,18 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
             HttpResponseParser httpResponseParser = new(this.Logger);
+
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Put,
                                              requestData);
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData);
+                HttpContent content = this.BuildHttpContent(requestData, 
+                                                            payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PutAsync(uri, content, cancellationToken);
                 stopwatch.Stop();
@@ -431,13 +502,18 @@ namespace AMDevIT.Restling.Core
                 elapsed = stopwatch.Elapsed;
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync<D>(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            restRequestResult = await httpResponseParser.DecodeAsync<D>(resultHttpMessage, 
+                                                                        restRequest, 
+                                                                        elapsed,
+                                                                        payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                                        cancellationToken);
             return restRequestResult;
         }
 
         public async Task<RestRequestResult> PutAsync<T>(string uri,
                                                          T requestData,
                                                          RequestHeaders requestHeaders,
+                                                         PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                          CancellationToken cancellationToken = default)
         {
             RestRequest<T> restRequest;
@@ -448,6 +524,9 @@ namespace AMDevIT.Restling.Core
                                              requestData,
                                              requestHeaders);
 
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+
             restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
         }
@@ -455,6 +534,7 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
                                                                T requestData,
                                                                RequestHeaders requestHeaders,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                                CancellationToken cancellationToken = default)
         {
             RestRequest<T> restRequest;
@@ -464,6 +544,9 @@ namespace AMDevIT.Restling.Core
                                              HttpMethod.Put,
                                              requestData,
                                              requestHeaders);
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
 
             restRequestResult = await this.ExecuteRequestAsync<D, T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
@@ -487,6 +570,7 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
             HttpResponseParser httpResponseParser = new(this.Logger);
+
             restRequest = new RestRequest(uri,
                                           HttpMethod.Delete,
                                           null);
@@ -519,7 +603,9 @@ namespace AMDevIT.Restling.Core
         /// <param name="requestData"></param>
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
-        public async Task<RestRequestResult<T>> DeleteAsync<T>(string uri, CancellationToken cancellationToken = default)
+        public async Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
+                                                               CancellationToken cancellationToken = default)
         {
             HttpResponseMessage? resultHttpMessage = null;
             RestRequest restRequest;
@@ -530,6 +616,10 @@ namespace AMDevIT.Restling.Core
             restRequest = new RestRequest(uri,
                                           HttpMethod.Delete,
                                           null);
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+
             try
             {
                 stopwatch = Stopwatch.StartNew();
@@ -547,7 +637,11 @@ namespace AMDevIT.Restling.Core
             {
                 elapsed = stopwatch.Elapsed;
             }
-            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, 
+                                                                        restRequest, 
+                                                                        elapsed,
+                                                                        payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                                        cancellationToken);
             return restRequestResult;
         }
 
@@ -568,6 +662,7 @@ namespace AMDevIT.Restling.Core
 
         public async Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
                                                                RequestHeaders requestHeaders,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                                CancellationToken cancellationToken = default)
         {
             RestRequest restRequest;
@@ -576,6 +671,9 @@ namespace AMDevIT.Restling.Core
             restRequest = new RestRequest(uri,
                                           HttpMethod.Delete,
                                           requestHeaders);
+
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
 
             restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
@@ -607,7 +705,7 @@ namespace AMDevIT.Restling.Core
             restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, 
                                                                        httpRequest, 
                                                                        throwOnGenerics: throwOnGenerics, 
-                                                                       cancellationToken);
+                                                                       cancellationToken: cancellationToken);
             return restRequestResult;
         }
 
@@ -638,7 +736,7 @@ namespace AMDevIT.Restling.Core
             httpRequest = this.BuildHttpRequestMessage(restRequest);           
             restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, 
                                                                           httpRequest,
-                                                                          throwOnGenerics: throwOnGenerics,
+                                                                          throwOnGenerics: throwOnGenerics,                                                                          
                                                                           cancellationToken);
             return restRequestResult;
         }
@@ -755,7 +853,11 @@ namespace AMDevIT.Restling.Core
                 elapsed = stopwatch.Elapsed;
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, 
+                                                                        restRequest, 
+                                                                        elapsed, 
+                                                                        payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary, 
+                                                                        cancellationToken);
             return restRequestResult;
         }
 
@@ -777,7 +879,9 @@ namespace AMDevIT.Restling.Core
             }
         }       
 
-        protected HttpContent BuildHttpContent<T>(T requestData, string? requestContentMediaType = null)
+        protected HttpContent BuildHttpContent<T>(T requestData, string? 
+                                                  requestContentMediaType = null,
+                                                  PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
         {
             HttpContent content;
 
@@ -794,7 +898,7 @@ namespace AMDevIT.Restling.Core
             else
             {
                 JsonSerialization jsonSerialization = new(this.Logger);
-                string jsonContent = jsonSerialization.Serialize(requestData);
+                string jsonContent = jsonSerialization.Serialize(requestData, payloadJsonSerializerLibrary);
                 string? mediaType = requestContentMediaType;
 
                 if (string.IsNullOrWhiteSpace(mediaType))
@@ -867,7 +971,9 @@ namespace AMDevIT.Restling.Core
 
             if (restRequest.RequestData != null)
             {
-                httpRequest.Content = this.BuildHttpContent<T>(restRequest.RequestData, requestContentMediaType: restRequest.ContentMediaType);
+                httpRequest.Content = this.BuildHttpContent<T>(restRequest.RequestData, 
+                                                               requestContentMediaType: restRequest.ContentMediaType,
+                                                               payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
             }
 
             return httpRequest;
