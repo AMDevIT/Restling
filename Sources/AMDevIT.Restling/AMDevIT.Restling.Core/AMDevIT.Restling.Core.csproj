@@ -17,11 +17,11 @@
     <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
     <AssemblyVersion>1.0.18.10</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
-    <PackageReleaseNotes>Added application/atom+xml mediatype for direct XML deserialization. Fixed a behavior where the default raw content isn't flagged as binary. Added the read behavior for atom+xml.
+    <PackageReleaseNotes>Added a property used to force json serializer for the HTTP Rest call. Also, it's possibile to define the default JSON serializer for the restling client as a global property.
 </PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <Version>$(AssemblyVersion)</Version>
+    <Version>$(AssemblyVersion)-rc.1</Version>
     <PackageIcon>RestlingIcon.png</PackageIcon>
     <PackageId>Restling</PackageId>
   </PropertyGroup>
