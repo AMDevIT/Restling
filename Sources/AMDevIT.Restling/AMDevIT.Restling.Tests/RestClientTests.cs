@@ -2,9 +2,12 @@
 using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Core.Network.Builders;
 using AMDevIT.Restling.Core.Network.Builders.Security.Headers;
+using AMDevIT.Restling.Core.Serialization;
 using AMDevIT.Restling.Tests.Diagnostics;
 using AMDevIT.Restling.Tests.Models;
 using AMDevIT.Restling.Tests.Models.Authentication;
+using AMDevIT.Restling.Tests.Models.NS;
+using AMDevIT.Restling.Tests.Models.ST;
 using AMDevIT.Restling.Tests.Models.Xml;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -57,7 +60,7 @@ namespace AMDevIT.Restling.Tests
 
             uri = $"{uri}?test={parameter}";
 
-            nsRestRequestResult = await restlingClient.GetAsync<NSHttpBinResponse>(uri, cancellationToken);
+            nsRestRequestResult = await restlingClient.GetAsync<NSHttpBinResponse>(uri, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -65,7 +68,7 @@ namespace AMDevIT.Restling.Tests
             Trace.WriteLine("NS response:");
             Trace.WriteLine(nsHttpBinResponse.ToString());
 
-            stRestRequestResult = await restlingClient.GetAsync<STHttpBinResponse>(uri, cancellationToken);
+            stRestRequestResult = await restlingClient.GetAsync<STHttpBinResponse>(uri, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(stRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -83,7 +86,7 @@ namespace AMDevIT.Restling.Tests
             RestRequestResult<Slideshow> restRequestResult;
             Slideshow slideshow;
 
-            restRequestResult = await restlingClient.GetAsync<Slideshow>(uri, cancellationToken);
+            restRequestResult = await restlingClient.GetAsync<Slideshow>(uri, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(restRequestResult.Data, "Rest response data for Newtonsoft is null");
             Trace.WriteLine($"Request result: {restRequestResult.Content}");
@@ -103,7 +106,7 @@ namespace AMDevIT.Restling.Tests
             NSHttpBinResponse? nsHttpBinResponse;
             HttpDataTestModel testModel = new(name, surname);
 
-            nsRestRequestResult = await restlingClient.PostAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, cancellationToken);
+            nsRestRequestResult = await restlingClient.PostAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -123,7 +126,7 @@ namespace AMDevIT.Restling.Tests
             NSHttpBinResponse? nsHttpBinResponse;
             HttpDataTestModel testModel = new(name, surname);
 
-            nsRestRequestResult = await restlingClient.PutAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, cancellationToken);
+            nsRestRequestResult = await restlingClient.PutAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -147,7 +150,7 @@ namespace AMDevIT.Restling.Tests
 
             uri = $"{uri}?test={parameter}";
 
-            nsRestRequestResult = await restlingClient.DeleteAsync<NSHttpBinResponse>(uri, cancellationToken);
+            nsRestRequestResult = await restlingClient.DeleteAsync<NSHttpBinResponse>(uri, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -155,7 +158,7 @@ namespace AMDevIT.Restling.Tests
             Trace.WriteLine("NS response:");
             Trace.WriteLine(nsHttpBinResponse.ToString());
 
-            stRestRequestResult = await restlingClient.DeleteAsync<STHttpBinResponse>(uri, cancellationToken);
+            stRestRequestResult = await restlingClient.DeleteAsync<STHttpBinResponse>(uri, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(stRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -187,7 +190,7 @@ namespace AMDevIT.Restling.Tests
 
             uri = $"{uri}?test={parameter}";
 
-            nsRestRequestResult = await restlingClient.GetAsync<NSHttpBinResponse>(uri, requestHeaders, cancellationToken);
+            nsRestRequestResult = await restlingClient.GetAsync<NSHttpBinResponse>(uri, requestHeaders, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -216,7 +219,7 @@ namespace AMDevIT.Restling.Tests
 
             requestHeaders.Headers.Add(additionalHeaderKey, additionalHeaderValue);            
 
-            nsRestRequestResult = await restlingClient.PostAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, requestHeaders, cancellationToken);
+            nsRestRequestResult = await restlingClient.PostAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, requestHeaders, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -245,7 +248,7 @@ namespace AMDevIT.Restling.Tests
 
             requestHeaders.Headers.Add(additionalHeaderKey, additionalHeaderValue);
 
-            nsRestRequestResult = await restlingClient.PutAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, requestHeaders, cancellationToken);
+            nsRestRequestResult = await restlingClient.PutAsync<NSHttpBinResponse, HttpDataTestModel>(uri, testModel, requestHeaders, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -274,7 +277,7 @@ namespace AMDevIT.Restling.Tests
 
             uri = $"{uri}?test={parameter}";
 
-            nsRestRequestResult = await restlingClient.DeleteAsync<NSHttpBinResponse>(uri, requestHeaders, cancellationToken);
+            nsRestRequestResult = await restlingClient.DeleteAsync<NSHttpBinResponse>(uri, requestHeaders, cancellationToken: cancellationToken);
 
             Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
 
@@ -309,7 +312,7 @@ namespace AMDevIT.Restling.Tests
             CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
             RestlingClient restlingClient = new(this.Logger);
             RestRequestResult<byte[]> restRequestResult;
-            restRequestResult = await restlingClient.GetAsync<byte[]>(uri, cancellationToken);
+            restRequestResult = await restlingClient.GetAsync<byte[]>(uri, cancellationToken: cancellationToken);
             Assert.IsTrue(restRequestResult.IsSuccessful, "Request result is not succesful");
             Assert.IsNotNull(restRequestResult.Data, "Rest response data is null");
             Trace.WriteLine(restRequestResult.ToString());            
@@ -339,10 +342,121 @@ namespace AMDevIT.Restling.Tests
             httpClientContextBuilder.AddAuthenticationHeader(authenticationHeader);
 
             restlingClient = new (httpClientContextBuilder, this.logger);
-            restRequestResult = await restlingClient.GetAsync<BasicAuthResult>(requestUri, cancellationToken);
+            restRequestResult = await restlingClient.GetAsync<BasicAuthResult>(requestUri, cancellationToken: cancellationToken);
             Assert.IsTrue(restRequestResult.IsSuccessful, $"Request result is not succesful. Result: {restRequestResult}");
             Assert.IsNotNull(restRequestResult.Data, $"Rest response data is null. Result: {restRequestResult}");
             Trace.WriteLine(restRequestResult.ToString());
+        }
+
+        #endregion
+
+        #region Forced serialization
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/get", "1234")]
+        public async Task TestForcedSerializationWithWrongClassST(string uri, string parameter)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<STOnlyHttpBinResponse> stRestRequestResult;
+            STOnlyHttpBinResponse? stsHttpBinResponse;
+
+            uri = $"{uri}?test={parameter}";
+            stRestRequestResult = await restlingClient.GetAsync<STOnlyHttpBinResponse>(uri, PayloadJsonSerializerLibrary.NewtonsoftJson, cancellationToken: cancellationToken);
+
+            Assert.IsNull(stRestRequestResult.Data?.Args, "Rest response data args for Newtonsoft is still serialized even if it's decorated with System.Text.Json");
+            Assert.IsNull(stRestRequestResult.Data?.Headers, "Rest response data headers for Newtonsoft is still serialized even if it's decorated with System.Text.Json");
+            Assert.IsNull(stRestRequestResult.Data?.Url, "Rest response data url for Newtonsoft is still serialized even if it's decorated with System.Text.Json");
+
+            stRestRequestResult = await restlingClient.GetAsync<STOnlyHttpBinResponse>(uri, PayloadJsonSerializerLibrary.SystemTextJson, cancellationToken: cancellationToken);
+
+            Assert.IsNotNull(stRestRequestResult.Data?.Args, "Rest response data args for System.Text.Json is still null.");
+            Assert.IsNotNull(stRestRequestResult.Data?.Headers, "Rest response data headers for System.Text.Json is still null.");
+            Assert.IsNotNull(stRestRequestResult.Data?.Url, "Rest response data url for System.Text.Json is still null.");
+
+            Trace.WriteLine($"Request result: {stRestRequestResult.Content}");
+            stsHttpBinResponse = stRestRequestResult.Data;
+            Trace.WriteLine("STHttpBinResponse response:");
+            Trace.WriteLine(stsHttpBinResponse?.ToString());
+        }
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/get", "1234")]
+        public async Task TestForcedSerializationWithDifferentSerializers(string uri, string parameter)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<NSOnlyHttpBinResponse> stRestRequestResult;
+            NSOnlyHttpBinResponse? stsHttpBinResponse;
+
+            uri = $"{uri}?test={parameter}";
+            stRestRequestResult = await restlingClient.GetAsync<NSOnlyHttpBinResponse>(uri, PayloadJsonSerializerLibrary.SystemTextJson, cancellationToken: cancellationToken);
+
+            Assert.IsNotNull(stRestRequestResult.Data?.Args, "Rest response data args for System.Text.Json is still null.");
+            Assert.IsNotNull(stRestRequestResult.Data?.Headers, "Rest response data headers for System.Text.Json is still null.");
+            Assert.IsNotNull(stRestRequestResult.Data?.Url, "Rest response data url for System.Text.Json is still null.");
+
+            stRestRequestResult = await restlingClient.GetAsync<NSOnlyHttpBinResponse>(uri, PayloadJsonSerializerLibrary.NewtonsoftJson, cancellationToken: cancellationToken);
+
+            Assert.IsNull(stRestRequestResult.Data?.Args, "Rest response data args for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+            Assert.IsNull(stRestRequestResult.Data?.Headers, "Rest response data headers for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+            Assert.IsNull(stRestRequestResult.Data?.Url, "Rest response data url for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+
+            Trace.WriteLine($"Request result: {stRestRequestResult.Content}");
+            stsHttpBinResponse = stRestRequestResult.Data;
+            Trace.WriteLine("STHttpBinResponse response:");
+            Trace.WriteLine(stsHttpBinResponse?.ToString());
+        }
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/get", "1234", PayloadJsonSerializerLibrary.Automatic)]
+        [DataRow("https://httpbin.org/get", "1234", PayloadJsonSerializerLibrary.NewtonsoftJson)]
+        [DataRow("https://httpbin.org/get", "1234", PayloadJsonSerializerLibrary.SystemTextJson)]
+        public async Task TestForcedSerializationWithDifferentSerializers(string uri, string parameter, PayloadJsonSerializerLibrary serializerLibrary)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger)
+            {
+                SelectedDefaultSerializationLibrary = serializerLibrary
+            };
+
+            RestRequestResult<NSOnlyHttpBinResponse> stRestRequestResult;
+            NSOnlyHttpBinResponse? stsHttpBinResponse;
+
+            uri = $"{uri}?test={parameter}";
+
+            stRestRequestResult = await restlingClient.GetAsync<NSOnlyHttpBinResponse>(uri, cancellationToken: cancellationToken);
+
+            switch (serializerLibrary)
+            {
+                default:
+                case PayloadJsonSerializerLibrary.Automatic:
+                    {
+                        // With two serialized detected, Newtonsoft have the priority.
+
+                        Assert.IsNull(stRestRequestResult.Data?.Args, "Rest response data args for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+                        Assert.IsNull(stRestRequestResult.Data?.Headers, "Rest response data headers for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+                        Assert.IsNull(stRestRequestResult.Data?.Url, "Rest response data url for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+                    }
+                    break;
+
+                case PayloadJsonSerializerLibrary.NewtonsoftJson:
+                    Assert.IsNull(stRestRequestResult.Data?.Args, "Rest response data args for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+                    Assert.IsNull(stRestRequestResult.Data?.Headers, "Rest response data headers for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+                    Assert.IsNull(stRestRequestResult.Data?.Url, "Rest response data url for Newtonsoft is still serialized even if it's decorated with JsonIgnore");
+                    break;
+
+                case PayloadJsonSerializerLibrary.SystemTextJson:
+                    Assert.IsNotNull(stRestRequestResult.Data?.Args, "Rest response data args for System.Text.Json is still null.");
+                    Assert.IsNotNull(stRestRequestResult.Data?.Headers, "Rest response data headers for System.Text.Json is still null.");
+                    Assert.IsNotNull(stRestRequestResult.Data?.Url, "Rest response data url for System.Text.Json is still null.");
+                    break;
+            }            
+
+            Trace.WriteLine($"Request result: {stRestRequestResult.Content}");
+            stsHttpBinResponse = stRestRequestResult.Data;
+            Trace.WriteLine("STHttpBinResponse response:");
+            Trace.WriteLine(stsHttpBinResponse?.ToString());
         }
 
         #endregion

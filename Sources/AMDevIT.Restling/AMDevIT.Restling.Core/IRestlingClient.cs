@@ -1,5 +1,6 @@
 ﻿using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Core.Network.Builders;
+using AMDevIT.Restling.Core.Serialization;
 
 namespace AMDevIT.Restling.Core
 {
@@ -13,6 +14,12 @@ namespace AMDevIT.Restling.Core
         public HttpClientContext ClientContext
         {
             get;
+        }
+
+        PayloadJsonSerializerLibrary SelectedDefaultSerializationLibrary
+        {
+            get;
+            set;
         }
 
         /// <summary>
@@ -50,7 +57,9 @@ namespace AMDevIT.Restling.Core
         /// <param name="uri">The request resource URI</param>
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
-        Task<RestRequestResult<T>> GetAsync<T>(string uri, CancellationToken cancellationToken = default);
+        Task<RestRequestResult<T>> GetAsync<T>(string uri,
+                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
+                                               CancellationToken cancellationToken = default);
 
         Task<RestRequestResult> GetAsync(string uri,
                                          RequestHeaders requestHeaders,
@@ -58,6 +67,7 @@ namespace AMDevIT.Restling.Core
 
         Task<RestRequestResult<T>> GetAsync<T>(string uri,
                                                RequestHeaders requestHeaders,
+                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                CancellationToken cancellationToken = default);
 
         #endregion
@@ -74,6 +84,7 @@ namespace AMDevIT.Restling.Core
         /// <returns>The value returned from the remote resource</returns>
         Task<RestRequestResult> PostAsync<T>(string uri,
                                              T requestData,
+                                             PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                              CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -87,16 +98,19 @@ namespace AMDevIT.Restling.Core
         /// <returns>The value returned from the remote resource</returns>
         Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
                                                    T requestData,
+                                                   PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                    CancellationToken cancellationToken = default);
 
         Task<RestRequestResult> PostAsync<T>(string uri,
                                              T requestData,
                                              RequestHeaders requestHeaders,
+                                             PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                              CancellationToken cancellationToken = default);
 
         Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
                                                    T requestData,
                                                    RequestHeaders requestHeaders,
+                                                   PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                    CancellationToken cancellationToken = default);
 
         #endregion
@@ -105,6 +119,7 @@ namespace AMDevIT.Restling.Core
 
         Task<RestRequestResult> PutAsync<T>(string uri,
                                             T requestData,
+                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -118,16 +133,19 @@ namespace AMDevIT.Restling.Core
         /// <returns>The value returned from the remote resource</returns>
         Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
                                                   T requestData,
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                   CancellationToken cancellationToken = default);
 
         Task<RestRequestResult> PutAsync<T>(string uri,
                                             T requestData,
                                             RequestHeaders requestHeaders,
+                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                             CancellationToken cancellationToken = default);
 
         Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
                                                   T requestData,
                                                   RequestHeaders requestHeaders,
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                   CancellationToken cancellationToken = default);
 
         #endregion
@@ -150,7 +168,9 @@ namespace AMDevIT.Restling.Core
         /// <param name="requestData"></param>
         /// <param name="cancellationToken">A valid cancellation token</param>
         /// <returns>The value returned from the remote resource</returns>
-        Task<RestRequestResult<T>> DeleteAsync<T>(string uri, CancellationToken cancellationToken = default);
+        Task<RestRequestResult<T>> DeleteAsync<T>(string uri, 
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null, 
+                                                  CancellationToken cancellationToken = default);
 
         Task<RestRequestResult> DeleteAsync(string uri,
                                             RequestHeaders requestHeaders,
@@ -158,6 +178,7 @@ namespace AMDevIT.Restling.Core
 
         Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
                                                   RequestHeaders requestHeaders,
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                   CancellationToken cancellationToken = default);
 
         #endregion

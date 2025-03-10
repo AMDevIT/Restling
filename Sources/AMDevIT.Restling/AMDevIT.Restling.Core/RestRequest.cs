@@ -1,4 +1,5 @@
 ﻿using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Serialization;
 
 namespace AMDevIT.Restling.Core
 {
@@ -34,6 +35,15 @@ namespace AMDevIT.Restling.Core
             get => this.customMethod;
             set => this.customMethod = value;
         }
+
+        /// <summary>
+        /// Forces the selected serialization library to be used when serializing/deserializing payloads.
+        /// </summary>
+        public PayloadJsonSerializerLibrary? ForcePayloadJsonSerializerLibrary
+        {
+            get;
+            set;
+        } = null;
 
         public RequestHeaders Headers => this.headers;
 

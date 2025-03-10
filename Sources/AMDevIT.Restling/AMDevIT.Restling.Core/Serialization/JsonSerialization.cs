@@ -22,21 +22,43 @@ namespace AMDevIT.Restling.Core.Serialization
 
         #region Methods
 
-        public string Serialize(object objectInstance)
+        public string Serialize(object objectInstance, PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
         {
             ArgumentNullException.ThrowIfNull(objectInstance, nameof(objectInstance));
 
-            Type objectType = objectInstance.GetType();
-            return UsesNewtonsoftAttributes(objectType) ? NewtonsoftSerialize(objectInstance) : SystemTextSerialize(objectInstance);
+            payloadJsonSerializerLibrary ??= PayloadJsonSerializerLibrary.Automatic;
+
+            switch (payloadJsonSerializerLibrary)
+            {
+                default:
+                case PayloadJsonSerializerLibrary.Automatic:
+                    {
+                        Type objectType = objectInstance.GetType();
+                        return UsesNewtonsoftAttributes(objectType) ? NewtonsoftSerialize(objectInstance) : SystemTextSerialize(objectInstance);
+                    }
+                case PayloadJsonSerializerLibrary.NewtonsoftJson:
+                    return NewtonsoftSerialize(objectInstance);
+
+                case PayloadJsonSerializerLibrary.SystemTextJson:
+                    return SystemTextSerialize(objectInstance);
+            }            
         }
 
-        public T? Deserialize<T>(string json)
+        public T? Deserialize<T>(string json, PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
         {
             ArgumentNullException.ThrowIfNull(json, nameof(json));
+
             if (string.IsNullOrWhiteSpace(json))
                 return default;
 
-            return UsesNewtonsoftAttributes(typeof(T)) ? NewtonsoftDeserialize<T>(json) : SystemTextDeserialize<T>(json);
+            payloadJsonSerializerLibrary ??= PayloadJsonSerializerLibrary.Automatic;
+
+            return payloadJsonSerializerLibrary switch
+            {
+                PayloadJsonSerializerLibrary.NewtonsoftJson => NewtonsoftDeserialize<T>(json),
+                PayloadJsonSerializerLibrary.SystemTextJson => SystemTextDeserialize<T>(json),
+                _ => UsesNewtonsoftAttributes(typeof(T)) ? NewtonsoftDeserialize<T>(json) : SystemTextDeserialize<T>(json),
+            };
         }
 
         private string NewtonsoftSerialize(object objectInstance)

@@ -69,6 +69,7 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult<T>> DecodeAsync<T>(HttpResponseMessage resultHttpMessage,
                                                                RestRequest restRequest,
                                                                TimeSpan elapsed,
+                                                               PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null,
                                                                CancellationToken cancellationToken = default)
         {
             RestRequestResult<T> restRequestResult;
@@ -96,10 +97,8 @@ namespace AMDevIT.Restling.Core
                                 ? Convert.ToBase64String(rawContent)
                                 : content.Content?.ToString() ?? string.Empty
                         ),
-
                         Type t when t.IsPrimitive => ConvertPrimitive<T>(content.Content),
-
-                        _ => this.DecodeData<T>(rawContent, content, contentType)
+                        _ => this.DecodeData<T>(rawContent, content, contentType, payloadJsonSerializerLibrary: payloadJsonSerializerLibrary)
                     };
                 }
                 catch (Exception)
@@ -107,30 +106,7 @@ namespace AMDevIT.Restling.Core
                     if (resultHttpMessage.IsSuccessStatusCode)
                         throw;
                     // If not, ignore the exception.
-                }
-
-                //if (resultHttpMessage.IsSuccessStatusCode)
-                //{
-                //    data = typeof(T) switch
-                //    {
-                //        Type t when t == typeof(byte[]) => (T)(object)rawContent,
-
-                //        Type t when t == typeof(string) => (T)(object)(
-                //            content.IsBinaryData == true
-                //                ? Convert.ToBase64String(rawContent)
-                //                : content.Content?.ToString() ?? string.Empty
-                //        ),
-
-                //        Type t when t.IsPrimitive => ConvertPrimitive<T>(content.Content),
-
-                //        _ => this.DecodeData<T>(rawContent, content, contentType)
-                //    };
-                //}
-                //else
-                //{
-                //    // Maybe it's good to decode the content anyway. But this time ignoring the exceptions?
-                    
-                //}
+                }             
 
                 restRequestResult = new(restRequest,
                                         data,
@@ -172,7 +148,10 @@ namespace AMDevIT.Restling.Core
         }
 
 
-        private T? DecodeData<T>(byte[] rawContent, RetrievedContentResult content, MediaTypeHeaderValue? contentType)
+        private T? DecodeData<T>(byte[] rawContent, 
+                                 RetrievedContentResult content, 
+                                 MediaTypeHeaderValue? contentType,
+                                 PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
         {
             T? data = default;
 
@@ -185,7 +164,7 @@ namespace AMDevIT.Restling.Core
                         if (content.Content is string json)
                         {
                             JsonSerialization jsonSerialization = new(this.Logger);
-                            data = jsonSerialization.Deserialize<T>(json);
+                            data = jsonSerialization.Deserialize<T>(json, payloadJsonSerializerLibrary);
                         }
                     }
                     catch (Exception exc)
