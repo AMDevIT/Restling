@@ -21,7 +21,7 @@
 </PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <Version>$(AssemblyVersion)-rc.1</Version>
+    <Version>$(AssemblyVersion)</Version>
     <PackageIcon>RestlingIcon.png</PackageIcon>
     <PackageId>Restling</PackageId>
   </PropertyGroup>

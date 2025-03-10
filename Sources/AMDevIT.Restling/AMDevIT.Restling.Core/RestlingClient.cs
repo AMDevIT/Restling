@@ -794,6 +794,12 @@ namespace AMDevIT.Restling.Core
                     throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
             }
 
+            restRequest.ForcePayloadJsonSerializerLibrary = this.SelectedDefaultSerializationLibrary switch
+            {
+                PayloadJsonSerializerLibrary.Automatic => restRequest.ForcePayloadJsonSerializerLibrary,
+                _ => this.SelectedDefaultSerializationLibrary
+            };
+
             try
             {
                 stopwatch = Stopwatch.StartNew();
@@ -833,6 +839,12 @@ namespace AMDevIT.Restling.Core
                 if (restRequest.GetType().IsGenericType == true)
                     throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
             }
+
+            restRequest.ForcePayloadJsonSerializerLibrary = this.SelectedDefaultSerializationLibrary switch
+            {
+                PayloadJsonSerializerLibrary.Automatic => restRequest.ForcePayloadJsonSerializerLibrary,
+                _ => this.SelectedDefaultSerializationLibrary
+            };
 
             try
             {
