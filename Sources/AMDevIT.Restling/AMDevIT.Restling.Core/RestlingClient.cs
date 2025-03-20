@@ -695,17 +695,51 @@ namespace AMDevIT.Restling.Core
                                                                  bool throwOnGenerics = true,
                                                                  CancellationToken cancellationToken = default)
         {
-            HttpRequestMessage httpRequest;
             RestRequestResult restRequestResult;
 
-            ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
-            ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
+            switch (restRequest)
+            {
+                case FormUrlEncodedRequest formUrlEncodedRequest:
+                    {
+                        restRequestResult = await this.ExecuteFormUrlEncodedRequest(formUrlEncodedRequest, cancellationToken);
+                    }
+                    break;
 
-            httpRequest = BuildHttpRequestMessage(restRequest);                   
-            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, 
-                                                                       httpRequest, 
-                                                                       throwOnGenerics: throwOnGenerics, 
-                                                                       cancellationToken: cancellationToken);
+                case RestRawRequest restRawRequest:
+                    {
+                        restRequestResult = await this.ExecuteRawRequestAsync(restRawRequest, cancellationToken);
+                    }
+                    break;
+
+                default:
+                case RestRequest _:
+                    {
+                        HttpRequestMessage httpRequest;
+
+                        ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
+                        ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
+
+                        httpRequest = BuildHttpRequestMessage(restRequest);
+                        restRequestResult = await this.ExecuteRequestInternalAsync(restRequest,
+                                                                                   httpRequest,
+                                                                                   throwOnGenerics: throwOnGenerics,
+                                                                                   cancellationToken: cancellationToken);
+                        break;
+                    }
+            }
+
+            //HttpRequestMessage httpRequest;
+            
+
+            //ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
+            //ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
+
+            //httpRequest = BuildHttpRequestMessage(restRequest);                   
+            //restRequestResult = await this.ExecuteRequestInternalAsync(restRequest, 
+            //                                                           httpRequest, 
+            //                                                           throwOnGenerics: throwOnGenerics, 
+            //                                                           cancellationToken: cancellationToken);
+
             return restRequestResult;
         }
 
@@ -723,21 +757,45 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult<T>> ExecuteRequestAsync<T>(RestRequest restRequest,
                                                                        bool throwOnGenerics = false,
                                                                        CancellationToken cancellationToken = default)
-        {   
-            HttpRequestMessage httpRequest;
+        {
             RestRequestResult<T> restRequestResult;
 
-            ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
-            ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
+            switch (restRequest)
+            {
+                case FormUrlEncodedRequest formUrlEncodedRequest:
+                    {
+                        restRequestResult = await this.ExecuteFormUrlEncodedRequest<T>(formUrlEncodedRequest, cancellationToken);
+                    }
+                    break;
 
-            //if (restRequest.GetType().IsGenericType == true)
-            //    throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
+                case RestRawRequest restRawRequest:
+                    {
+                        restRequestResult = await this.ExecuteRawRequestAsync<T>(restRawRequest, 
+                                                                                 throwOnGenerics, 
+                                                                                 cancellationToken);
+                    }
+                    break;
 
-            httpRequest = this.BuildHttpRequestMessage(restRequest);           
-            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest, 
-                                                                          httpRequest,
-                                                                          throwOnGenerics: throwOnGenerics,                                                                          
-                                                                          cancellationToken);
+                default:
+                case RestRequest _:
+                    {
+                        HttpRequestMessage httpRequest;
+
+                        ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
+                        ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
+
+                        //if (restRequest.GetType().IsGenericType == true)
+                        //    throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
+
+                        httpRequest = this.BuildHttpRequestMessage(restRequest);
+                        restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest,
+                                                                                      httpRequest,
+                                                                                      throwOnGenerics: throwOnGenerics,
+                                                                                      cancellationToken);
+                    }
+                    break;
+            }
+            
             return restRequestResult;
         }
 
@@ -769,6 +827,63 @@ namespace AMDevIT.Restling.Core
                                                                           throwOnGenerics: throwOnGenerics, 
                                                                           cancellationToken: cancellationToken);
             return restRequestResult;
+        }
+
+        public async Task<RestRequestResult> ExecuteFormUrlEncodedRequest(FormUrlEncodedRequest formUrlEncodedRequest, 
+                                                                          CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<RestRequestResult<T>> ExecuteFormUrlEncodedRequest<T>(FormUrlEncodedRequest formUrlEncodedRequest,
+                                                                                CancellationToken cancellationToken = default)
+        {
+            NetHttpMethod netHttpMethod;
+         
+            throw new NotImplementedException();
+        }
+
+        public async Task<RestRequestResult> ExecuteRawRequestAsync(RestRawRequest restRawRequest,
+                                                                    CancellationToken cancellationToken = default)
+        {
+            HttpResponseParser httpResponseParser = new(this.Logger);
+            RestRequestResult restRequestResult;
+            HttpResponseMessage? resultHttpMessage = null;
+            Stopwatch stopwatch = new();
+            TimeSpan elapsed;
+            HttpRequestMessage httpRequest;
+            
+            httpRequest = this.BuildHttpRequestMessage(restRawRequest);
+
+
+            try
+            {
+                stopwatch = Stopwatch.StartNew();
+                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
+                stopwatch.Stop();
+            }
+            catch (Exception exc)
+            {
+                if (stopwatch.IsRunning)
+                    stopwatch.Stop();
+
+                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+                return new RestRequestResult(restRawRequest, exc, stopwatch.Elapsed);
+            }
+            finally
+            {
+                elapsed = stopwatch.Elapsed;
+            }
+
+            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRawRequest, elapsed, cancellationToken);
+            return restRequestResult;
+        }
+
+        public async Task<RestRequestResult<T>> ExecuteRawRequestAsync<T>(RestRawRequest restRawRequest,
+                                                                          bool throwOnGenerics = false,
+                                                                          CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
 
         public void Dispose()
@@ -955,8 +1070,8 @@ namespace AMDevIT.Restling.Core
 
             if (restRequest.Headers.AuthenticationHeader != null)
             {                
-                httpRequest.Headers.Authorization = new AuthenticationHeaderValue(restRequest.Headers.AuthenticationHeader.Scheme,
-                                                                                  restRequest.Headers.AuthenticationHeader.Parameter);
+                httpRequest.Headers.Authorization = new (restRequest.Headers.AuthenticationHeader.Scheme,
+                                                         restRequest.Headers.AuthenticationHeader.Parameter);
 
                 if (this.EnableVerboseLogging)
                     this.Logger?.LogTrace("Authentication header set to {authHeader}", httpRequest.Headers.Authorization.ToString());

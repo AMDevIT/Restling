@@ -11,6 +11,7 @@ using AMDevIT.Restling.Tests.Models.ST;
 using AMDevIT.Restling.Tests.Models.Xml;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Reflection.Metadata;
 
 namespace AMDevIT.Restling.Tests
 {
@@ -45,6 +46,28 @@ namespace AMDevIT.Restling.Tests
         }
 
         #region Quick methods
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/headers", "Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1dG50IjoiR3Jhc3NlcyBkaSBjYXpvIHRyYWZmZW8iLCJzdWJfY2VyaWFsIjoiU0hBREVPV19XRUxMRU5EIiwiZXhwIjoxNzAwMDAwMDAwLCJwZXJlY2hpIiOiJOdWFsbG9zIFNwYWdoZXR0aSIsImxldmVsIjoxMiwiaXNfcmVhbCI6ZmFsc2V9.XtQp-jYVaH5x9JZHKjG4dpK_Bj1E6dDcKzOYd5TxaVQ")]
+        public async Task TestHttpHeaders(string uri, string authScheme, string authHeaderValue)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<STHttpBinResponse> stRestRequestResult;
+            AuthenticationHeader authenticationHeader = new (authScheme, authHeaderValue);
+            RequestHeaders requestHeaders = new(authenticationHeader);
+            STHttpBinResponse? stsHttpBinResponse;
+
+            stRestRequestResult = await restlingClient.GetAsync<STHttpBinResponse>(uri,
+                                                                                   requestHeaders,
+                                                                                   cancellationToken: cancellationToken);
+
+            Assert.IsNotNull(stRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            stsHttpBinResponse = stRestRequestResult.Data;
+            Trace.WriteLine("St response:");
+            Trace.WriteLine(stsHttpBinResponse.ToString());
+        }
 
         [TestMethod]
         [DataRow("https://httpbin.org/get", "1234")]

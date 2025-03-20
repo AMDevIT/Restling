@@ -1,5 +1,7 @@
-﻿using AMDevIT.Restling.Core.Text;
+﻿using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Text;
 using System.Net;
+using System.Security.AccessControl;
 
 namespace AMDevIT.Restling.Core
 {
@@ -10,6 +12,7 @@ namespace AMDevIT.Restling.Core
                                    string? contentType,
                                    Charset charset,
                                    RetrievedContentResult? retrievedContent,
+                                   ResponseHeaders responseHeaders,
                                    Exception? exception = null)
     {
         #region Fields
@@ -22,6 +25,7 @@ namespace AMDevIT.Restling.Core
         private readonly byte[]? rawContent = rawContent;
         private readonly RetrievedContentResult? retrievedContent = retrievedContent;
         private readonly Exception? exception = exception;
+        private readonly ResponseHeaders responseHeaders = responseHeaders;
 
         #endregion
 
@@ -37,15 +41,16 @@ namespace AMDevIT.Restling.Core
 
         public string? ContentType => this.contentType;
         public Charset CharSet => this.charSet;
-
         public Exception? Exception => this.exception;
+
+        public ResponseHeaders ResponseHeaders => this.responseHeaders;
 
         #endregion
 
         #region .ctor
 
         public RestRequestResult(RestRequest request, Exception exception)
-            : this(request, null, TimeSpan.Zero, [], null, Charset.UTF8, null, exception)
+            : this(request, null, TimeSpan.Zero, [], null, Charset.UTF8, null, ResponseHeaders.Empty, exception)
         {
 
         }
@@ -59,7 +64,8 @@ namespace AMDevIT.Restling.Core
                  [], 
                  null, 
                  Charset.UTF8, 
-                 null, 
+                 null,
+                 ResponseHeaders.Empty,
                  exception)
         {
         }

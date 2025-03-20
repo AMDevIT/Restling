@@ -42,10 +42,13 @@ namespace AMDevIT.Restling.Core
             {
                 byte[] rawContent;
                 RetrievedContentResult retrievedContent;
+                ResponseHeaders responseHeaders;
                 MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
                 Charset charset = CharsetParser.Parse(contentType?.CharSet);
                 rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
                 retrievedContent = RetrieveContent(rawContent, contentType);
+                
+                responseHeaders = ResponseHeaders.Create(resultHttpMessage.Headers);
 
                 restRequestResult = new(restRequest,
                                         resultHttpMessage.StatusCode,
@@ -53,7 +56,8 @@ namespace AMDevIT.Restling.Core
                                         rawContent,
                                         contentType?.MediaType,
                                         charset,
-                                        retrievedContent);
+                                        retrievedContent,
+                                        responseHeaders);
             }
             else
             {
@@ -79,6 +83,7 @@ namespace AMDevIT.Restling.Core
                 byte[] rawContent;
                 T? data = default;
                 RetrievedContentResult content;
+                ResponseHeaders responseHeaders;
                 MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
                 Charset charset = CharsetParser.Parse(contentType?.CharSet);
                 rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
@@ -108,6 +113,7 @@ namespace AMDevIT.Restling.Core
                     // If not, ignore the exception.
                 }             
 
+                responseHeaders = ResponseHeaders.Create(resultHttpMessage.Headers);
                 restRequestResult = new(restRequest,
                                         data,
                                         resultHttpMessage.StatusCode,
@@ -115,7 +121,8 @@ namespace AMDevIT.Restling.Core
                                         rawContent,
                                         contentType?.MediaType,
                                         charset,
-                                        content);
+                                        content,
+                                        responseHeaders);
             }
             else
             {
