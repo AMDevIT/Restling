@@ -155,6 +155,16 @@ namespace AMDevIT.Restling.Core
             }
 
             restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch(Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -244,6 +254,16 @@ namespace AMDevIT.Restling.Core
                                                                         elapsed,
                                                                         payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
                                                                         cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -304,6 +324,16 @@ namespace AMDevIT.Restling.Core
                                                                      restRequest, 
                                                                      elapsed, 
                                                                      cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -361,6 +391,16 @@ namespace AMDevIT.Restling.Core
                                                                         elapsed,
                                                                         payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
                                                                         cancellationToken: cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -450,6 +490,16 @@ namespace AMDevIT.Restling.Core
             }
 
             restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -506,6 +556,16 @@ namespace AMDevIT.Restling.Core
                                                                         elapsed,
                                                                         payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
                                                                         cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -591,6 +651,16 @@ namespace AMDevIT.Restling.Core
                 elapsed = stopwatch.Elapsed;
             }
             restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -641,6 +711,16 @@ namespace AMDevIT.Restling.Core
                                                                         elapsed,
                                                                         payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
                                                                         cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -718,11 +798,13 @@ namespace AMDevIT.Restling.Core
                         ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
                         ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
-                        httpRequest = BuildHttpRequestMessage(restRequest);
-                        restRequestResult = await this.ExecuteRequestInternalAsync(restRequest,
-                                                                                   httpRequest,
-                                                                                   throwOnGenerics: throwOnGenerics,
-                                                                                   cancellationToken: cancellationToken);
+                        using (httpRequest = BuildHttpRequestMessage(restRequest))
+                        {
+                            restRequestResult = await this.ExecuteRequestInternalAsync(restRequest,
+                                                                                       httpRequest,
+                                                                                       throwOnGenerics: throwOnGenerics,
+                                                                                       cancellationToken: cancellationToken);
+                        }
                         break;
                     }
             }
@@ -770,7 +852,6 @@ namespace AMDevIT.Restling.Core
                 case RestRawRequest restRawRequest:
                     {
                         restRequestResult = await this.ExecuteRawRequestAsync<T>(restRawRequest, 
-                                                                                 throwOnGenerics, 
                                                                                  cancellationToken);
                     }
                     break;
@@ -786,11 +867,13 @@ namespace AMDevIT.Restling.Core
                         //if (restRequest.GetType().IsGenericType == true)
                         //    throw new InvalidOperationException("The rest request contains generic type data. Cannot be executed with using a call without payload.");
 
-                        httpRequest = this.BuildHttpRequestMessage(restRequest);
-                        restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest,
-                                                                                      httpRequest,
-                                                                                      throwOnGenerics: throwOnGenerics,
-                                                                                      cancellationToken);
+                        using (httpRequest = this.BuildHttpRequestMessage(restRequest))
+                        {
+                            restRequestResult = await this.ExecuteRequestInternalAsync<T>(restRequest,
+                                                                                          httpRequest,
+                                                                                          throwOnGenerics: throwOnGenerics,
+                                                                                          cancellationToken);
+                        }
                     }
                     break;
             }
@@ -820,11 +903,13 @@ namespace AMDevIT.Restling.Core
             ArgumentNullException.ThrowIfNull(restRequest, nameof(restRequest));
             ArgumentException.ThrowIfNullOrWhiteSpace(restRequest.Uri, nameof(restRequest.Uri));
 
-            httpRequest = this.BuildHttpRequestMessageWithPayload<T>(restRequest);
-            restRequestResult = await this.ExecuteRequestInternalAsync<D>(restRequest, 
-                                                                          httpRequest, 
-                                                                          throwOnGenerics: throwOnGenerics, 
-                                                                          cancellationToken: cancellationToken);
+            using (httpRequest = this.BuildHttpRequestMessageWithPayload<T>(restRequest))
+            {
+                restRequestResult = await this.ExecuteRequestInternalAsync<D>(restRequest,
+                                                                              httpRequest,
+                                                                              throwOnGenerics: throwOnGenerics,
+                                                                              cancellationToken: cancellationToken);
+            }
             return restRequestResult;
         }
 
@@ -838,32 +923,53 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             HttpRequestMessage httpRequest;
 
-            httpRequest = this.BuildHttpRequestMessage(formUrlEncodedRequest);
-            httpRequest.Content = this.BuildFormUrlEncodedContent(formUrlEncodedRequest.Parameters);
+            using (httpRequest = this.BuildHttpRequestMessage(formUrlEncodedRequest))
+            {
+                httpRequest.Content = this.BuildFormUrlEncodedContent(formUrlEncodedRequest.Parameters);
 
-            try
-            {
-                stopwatch = Stopwatch.StartNew();
-                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
-                stopwatch.Stop();
-            }
-            catch (Exception exc)
-            {
-                if (stopwatch.IsRunning)
+                try
+                {
+                    stopwatch = Stopwatch.StartNew();
+                    resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
                     stopwatch.Stop();
+                }
+                catch (Exception exc)
+                {
+                    if (stopwatch.IsRunning)
+                        stopwatch.Stop();
 
-                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
-                return new (formUrlEncodedRequest, exc, stopwatch.Elapsed);
-            }
-            finally
-            {
-                elapsed = stopwatch.Elapsed;
+                    this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+
+                    try
+                    {
+                        resultHttpMessage?.Dispose();
+                    }
+                    catch (Exception disposeExc)
+                    {
+                        this.Logger?.LogTrace(disposeExc, "Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                    }
+
+                    return new(formUrlEncodedRequest, exc, stopwatch.Elapsed);
+                }
+                finally
+                {
+                    elapsed = stopwatch.Elapsed;
+                }
+
+                restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage,
+                                                                         formUrlEncodedRequest,
+                                                                         elapsed,
+                                                                         cancellationToken);
+                try
+                {
+                    resultHttpMessage?.Dispose();
+                }
+                catch (Exception exc)
+                {
+                    this.Logger?.LogTrace(exc, "Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                }
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage,
-                                                                     formUrlEncodedRequest,
-                                                                     elapsed,
-                                                                     cancellationToken);
             return restRequestResult;
         }
 
@@ -877,33 +983,55 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             HttpRequestMessage httpRequest;
 
-            httpRequest = this.BuildHttpRequestMessage(formUrlEncodedRequest);
-            httpRequest.Content = this.BuildFormUrlEncodedContent(formUrlEncodedRequest.Parameters);
+            using (httpRequest = this.BuildHttpRequestMessage(formUrlEncodedRequest))
+            {
+                httpRequest.Content = this.BuildFormUrlEncodedContent(formUrlEncodedRequest.Parameters);
 
-            try
-            {
-                stopwatch = Stopwatch.StartNew();
-                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
-                stopwatch.Stop();
-            }
-            catch (Exception exc)
-            {
-                if (stopwatch.IsRunning)
+                try
+                {
+                    stopwatch = Stopwatch.StartNew();
+                    resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
                     stopwatch.Stop();
+                }
+                catch (Exception exc)
+                {
+                    if (stopwatch.IsRunning)
+                        stopwatch.Stop();
 
-                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
-                return new(formUrlEncodedRequest, exc, stopwatch.Elapsed);
-            }
-            finally
-            {
-                elapsed = stopwatch.Elapsed;
+                    this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+
+                    try
+                    {
+                        resultHttpMessage?.Dispose();
+                    }
+                    catch (Exception disposeExc)
+                    {
+                        this.Logger?.LogTrace(disposeExc, "Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                    }
+
+                    return new(formUrlEncodedRequest, exc, stopwatch.Elapsed);
+                }
+                finally
+                {
+                    elapsed = stopwatch.Elapsed;
+                }
+
+                restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage,
+                                                                            formUrlEncodedRequest,
+                                                                            elapsed,
+                                                                            formUrlEncodedRequest.ForcePayloadJsonSerializerLibrary,
+                                                                            cancellationToken);
+
+                try
+                {
+                    resultHttpMessage?.Dispose();
+                }
+                catch (Exception exc)
+                {
+                    this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                }
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, 
-                                                                        formUrlEncodedRequest, 
-                                                                        elapsed, 
-                                                                        formUrlEncodedRequest.ForcePayloadJsonSerializerLibrary, 
-                                                                        cancellationToken);
             return restRequestResult;
         }
 
@@ -916,36 +1044,57 @@ namespace AMDevIT.Restling.Core
             Stopwatch stopwatch = new();
             TimeSpan elapsed;
             HttpRequestMessage httpRequest;
-            
-            httpRequest = this.BuildHttpRequestMessage(restRawRequest);
-            httpRequest.Content = this.BuildRawHttpContent(restRawRequest.Content,
-                                                           restRawRequest.ContentType);
 
-            try
+            using (httpRequest = this.BuildHttpRequestMessage(restRawRequest))
             {
-                stopwatch = Stopwatch.StartNew();
-                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
-                stopwatch.Stop();
-            }
-            catch (Exception exc)
-            {
-                if (stopwatch.IsRunning)
+                httpRequest.Content = this.BuildRawHttpContent(restRawRequest.Content,
+                                                               restRawRequest.ContentType);
+
+                try
+                {
+                    stopwatch = Stopwatch.StartNew();
+                    resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
                     stopwatch.Stop();
+                }
+                catch (Exception exc)
+                {
+                    if (stopwatch.IsRunning)
+                        stopwatch.Stop();
 
-                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
-                return new (restRawRequest, exc, stopwatch.Elapsed);
-            }
-            finally
-            {
-                elapsed = stopwatch.Elapsed;
+                    this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+
+                    try
+                    {
+                        resultHttpMessage?.Dispose();
+                    }
+                    catch (Exception disposeExc)
+                    {
+                        this.Logger?.LogTrace(disposeExc, "Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                    }
+
+                    return new(restRawRequest, exc, stopwatch.Elapsed);
+                }
+                finally
+                {
+                    elapsed = stopwatch.Elapsed;
+                }
+
+                restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRawRequest, elapsed, cancellationToken);
+
+                try
+                {
+                    resultHttpMessage?.Dispose();
+                }
+                catch (Exception exc)
+                {
+                    this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                }
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRawRequest, elapsed, cancellationToken);
             return restRequestResult;
         }
 
         public async Task<RestRequestResult<T>> ExecuteRawRequestAsync<T>(RestRawRequest restRawRequest,
-                                                                          bool throwOnGenerics = false,
                                                                           CancellationToken cancellationToken = default)
         {
             HttpResponseParser httpResponseParser = new(this.Logger);
@@ -955,34 +1104,56 @@ namespace AMDevIT.Restling.Core
             TimeSpan elapsed;
             HttpRequestMessage httpRequest;
 
-            httpRequest = this.BuildHttpRequestMessage(restRawRequest);
-            httpRequest.Content = this.BuildRawHttpContent(restRawRequest.Content, 
-                                                           restRawRequest.ContentType); 
+            using (httpRequest = this.BuildHttpRequestMessage(restRawRequest))
+            {
+                httpRequest.Content = this.BuildRawHttpContent(restRawRequest.Content,
+                                                               restRawRequest.ContentType);
 
-            try
-            {
-                stopwatch = Stopwatch.StartNew();
-                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
-                stopwatch.Stop();
-            }
-            catch (Exception exc)
-            {
-                if (stopwatch.IsRunning)
+                try
+                {
+                    stopwatch = Stopwatch.StartNew();
+                    resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
                     stopwatch.Stop();
+                }
+                catch (Exception exc)
+                {
+                    if (stopwatch.IsRunning)
+                        stopwatch.Stop();
 
-                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
-                return new (restRawRequest, exc, stopwatch.Elapsed);
-            }
-            finally
-            {
-                elapsed = stopwatch.Elapsed;
+                    this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+
+                    try
+                    {
+                        resultHttpMessage?.Dispose();
+                    }
+                    catch (Exception disposeExc)
+                    {
+                        this.Logger?.LogTrace(disposeExc, "Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                    }
+
+                    return new(restRawRequest, exc, stopwatch.Elapsed);
+                }
+                finally
+                {
+                    elapsed = stopwatch.Elapsed;
+                }
+
+                restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage,
+                                                                            restRawRequest,
+                                                                            elapsed,
+                                                                            restRawRequest.ForcePayloadJsonSerializerLibrary,
+                                                                            cancellationToken);
+
+                try
+                {
+                    resultHttpMessage?.Dispose();
+                }
+                catch (Exception exc)
+                {
+                    this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                }
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, 
-                                                                        restRawRequest, 
-                                                                        elapsed, 
-                                                                        restRawRequest.ForcePayloadJsonSerializerLibrary,
-                                                                        cancellationToken);
             return restRequestResult;
         }
 
@@ -1027,6 +1198,16 @@ namespace AMDevIT.Restling.Core
                     stopwatch.Stop();
 
                 this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+
+                try
+                {
+                    resultHttpMessage?.Dispose();
+                }
+                catch (Exception disposeExc)
+                {
+                    this.Logger?.LogTrace(disposeExc, "Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                }
+
                 return new RestRequestResult(restRequest, exc, stopwatch.Elapsed);
             }
             finally
@@ -1034,7 +1215,17 @@ namespace AMDevIT.Restling.Core
                 elapsed = stopwatch.Elapsed;
             }
 
-            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);
+            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage, restRequest, elapsed, cancellationToken);            
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
@@ -1072,6 +1263,15 @@ namespace AMDevIT.Restling.Core
                 if (stopwatch.IsRunning)
                     stopwatch.Stop();
 
+                try
+                {
+                    resultHttpMessage?.Dispose();
+                }
+                catch (Exception disposeExc)
+                {
+                    this.Logger?.LogTrace(disposeExc, "Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                }
+
                 this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
                 return new RestRequestResult<T>(restRequest, exc, stopwatch.Elapsed);
             }
@@ -1085,6 +1285,16 @@ namespace AMDevIT.Restling.Core
                                                                         elapsed, 
                                                                         payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary, 
                                                                         cancellationToken);
+
+            try
+            {
+                resultHttpMessage?.Dispose();
+            }
+            catch (Exception exc)
+            {
+                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+            }
+
             return restRequestResult;
         }
 
