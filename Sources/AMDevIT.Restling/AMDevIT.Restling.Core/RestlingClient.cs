@@ -3,7 +3,6 @@ using AMDevIT.Restling.Core.Network.Builders;
 using AMDevIT.Restling.Core.Serialization;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Net.Http.Headers;
 using System.Text;
 using NetHttpMethod = System.Net.Http.HttpMethod;
 
@@ -283,7 +282,7 @@ namespace AMDevIT.Restling.Core
 
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData, 
+                HttpContent content = this.BuildJsonHttpContent(requestData, 
                                                             payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PostAsync(uri, content, cancellationToken);
@@ -339,7 +338,7 @@ namespace AMDevIT.Restling.Core
 
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData, 
+                HttpContent content = this.BuildJsonHttpContent(requestData, 
                                                             payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PostAsync(uri, content, cancellationToken);
@@ -433,7 +432,7 @@ namespace AMDevIT.Restling.Core
 
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData, payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
+                HttpContent content = this.BuildJsonHttpContent(requestData, payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PutAsync(uri, content, cancellationToken);
                 stopwatch.Stop();
@@ -484,7 +483,7 @@ namespace AMDevIT.Restling.Core
 
             try
             {
-                HttpContent content = this.BuildHttpContent(requestData, 
+                HttpContent content = this.BuildJsonHttpContent(requestData, 
                                                             payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.PutAsync(uri, content, cancellationToken);
@@ -832,29 +831,15 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult> ExecuteFormUrlEncodedRequest(FormUrlEncodedRequest formUrlEncodedRequest, 
                                                                           CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
-        }
-
-        public async Task<RestRequestResult<T>> ExecuteFormUrlEncodedRequest<T>(FormUrlEncodedRequest formUrlEncodedRequest,
-                                                                                CancellationToken cancellationToken = default)
-        {
-            NetHttpMethod netHttpMethod;
-         
-            throw new NotImplementedException();
-        }
-
-        public async Task<RestRequestResult> ExecuteRawRequestAsync(RestRawRequest restRawRequest,
-                                                                    CancellationToken cancellationToken = default)
-        {
             HttpResponseParser httpResponseParser = new(this.Logger);
             RestRequestResult restRequestResult;
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
             TimeSpan elapsed;
             HttpRequestMessage httpRequest;
-            
-            httpRequest = this.BuildHttpRequestMessage(restRawRequest);
 
+            httpRequest = this.BuildHttpRequestMessage(formUrlEncodedRequest);
+            httpRequest.Content = this.BuildFormUrlEncodedContent(formUrlEncodedRequest.Parameters);
 
             try
             {
@@ -868,7 +853,87 @@ namespace AMDevIT.Restling.Core
                     stopwatch.Stop();
 
                 this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
-                return new RestRequestResult(restRawRequest, exc, stopwatch.Elapsed);
+                return new (formUrlEncodedRequest, exc, stopwatch.Elapsed);
+            }
+            finally
+            {
+                elapsed = stopwatch.Elapsed;
+            }
+
+            restRequestResult = await httpResponseParser.DecodeAsync(resultHttpMessage,
+                                                                     formUrlEncodedRequest,
+                                                                     elapsed,
+                                                                     cancellationToken);
+            return restRequestResult;
+        }
+
+        public async Task<RestRequestResult<T>> ExecuteFormUrlEncodedRequest<T>(FormUrlEncodedRequest formUrlEncodedRequest,
+                                                                                CancellationToken cancellationToken = default)
+        {
+            HttpResponseParser httpResponseParser = new(this.Logger);
+            RestRequestResult<T> restRequestResult;
+            HttpResponseMessage? resultHttpMessage = null;
+            Stopwatch stopwatch = new();
+            TimeSpan elapsed;
+            HttpRequestMessage httpRequest;
+
+            httpRequest = this.BuildHttpRequestMessage(formUrlEncodedRequest);
+            httpRequest.Content = this.BuildFormUrlEncodedContent(formUrlEncodedRequest.Parameters);
+
+            try
+            {
+                stopwatch = Stopwatch.StartNew();
+                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
+                stopwatch.Stop();
+            }
+            catch (Exception exc)
+            {
+                if (stopwatch.IsRunning)
+                    stopwatch.Stop();
+
+                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+                return new(formUrlEncodedRequest, exc, stopwatch.Elapsed);
+            }
+            finally
+            {
+                elapsed = stopwatch.Elapsed;
+            }
+
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, 
+                                                                        formUrlEncodedRequest, 
+                                                                        elapsed, 
+                                                                        formUrlEncodedRequest.ForcePayloadJsonSerializerLibrary, 
+                                                                        cancellationToken);
+            return restRequestResult;
+        }
+
+        public async Task<RestRequestResult> ExecuteRawRequestAsync(RestRawRequest restRawRequest,
+                                                                    CancellationToken cancellationToken = default)
+        {
+            HttpResponseParser httpResponseParser = new(this.Logger);
+            RestRequestResult restRequestResult;
+            HttpResponseMessage? resultHttpMessage = null;
+            Stopwatch stopwatch = new();
+            TimeSpan elapsed;
+            HttpRequestMessage httpRequest;
+            
+            httpRequest = this.BuildHttpRequestMessage(restRawRequest);
+            httpRequest.Content = this.BuildRawHttpContent(restRawRequest.Content,
+                                                           restRawRequest.ContentType);
+
+            try
+            {
+                stopwatch = Stopwatch.StartNew();
+                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
+                stopwatch.Stop();
+            }
+            catch (Exception exc)
+            {
+                if (stopwatch.IsRunning)
+                    stopwatch.Stop();
+
+                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+                return new (restRawRequest, exc, stopwatch.Elapsed);
             }
             finally
             {
@@ -883,7 +948,42 @@ namespace AMDevIT.Restling.Core
                                                                           bool throwOnGenerics = false,
                                                                           CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            HttpResponseParser httpResponseParser = new(this.Logger);
+            RestRequestResult<T> restRequestResult;
+            HttpResponseMessage? resultHttpMessage = null;
+            Stopwatch stopwatch = new();
+            TimeSpan elapsed;
+            HttpRequestMessage httpRequest;
+
+            httpRequest = this.BuildHttpRequestMessage(restRawRequest);
+            httpRequest.Content = this.BuildRawHttpContent(restRawRequest.Content, 
+                                                           restRawRequest.ContentType); 
+
+            try
+            {
+                stopwatch = Stopwatch.StartNew();
+                resultHttpMessage = await this.httpClientContext.HttpClient.SendAsync(httpRequest, cancellationToken);
+                stopwatch.Stop();
+            }
+            catch (Exception exc)
+            {
+                if (stopwatch.IsRunning)
+                    stopwatch.Stop();
+
+                this.Logger?.LogError(exc, "Cannot execute {method} REST request.", httpRequest.Method.Method);
+                return new (restRawRequest, exc, stopwatch.Elapsed);
+            }
+            finally
+            {
+                elapsed = stopwatch.Elapsed;
+            }
+
+            restRequestResult = await httpResponseParser.DecodeAsync<T>(resultHttpMessage, 
+                                                                        restRawRequest, 
+                                                                        elapsed, 
+                                                                        restRawRequest.ForcePayloadJsonSerializerLibrary,
+                                                                        cancellationToken);
+            return restRequestResult;
         }
 
         public void Dispose()
@@ -1006,9 +1106,35 @@ namespace AMDevIT.Restling.Core
             }
         }       
 
-        protected HttpContent BuildHttpContent<T>(T requestData, string? 
-                                                  requestContentMediaType = null,
-                                                  PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
+        protected HttpContent BuildRawHttpContent(string? contentBody = null, 
+                                                  string? requestContentMediaType = null)
+        {
+            HttpContent httpContent;
+
+            if (this.EnableVerboseLogging)
+                this.Logger?.LogTrace("Building raw http content.");
+
+            if (contentBody == null)
+                contentBody = string.Empty;
+
+            httpContent = new StringContent(contentBody, Encoding.UTF8, requestContentMediaType ?? HttpMediaType.TextPlain);
+            return httpContent;
+        }
+
+        protected HttpContent BuildFormUrlEncodedContent(IDictionary<string, string> content)
+        {
+            HttpContent httpContent;
+
+            if (this.EnableVerboseLogging)
+                this.Logger?.LogTrace("Building form url encoded http content.");
+
+            httpContent = new FormUrlEncodedContent(content);
+            return httpContent;
+        }
+
+        protected HttpContent BuildJsonHttpContent<T>(T requestData, 
+                                                      string? requestContentMediaType = null,
+                                                      PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
         {
             HttpContent content;
 
@@ -1098,7 +1224,7 @@ namespace AMDevIT.Restling.Core
 
             if (restRequest.RequestData != null)
             {
-                httpRequest.Content = this.BuildHttpContent<T>(restRequest.RequestData, 
+                httpRequest.Content = this.BuildJsonHttpContent<T>(restRequest.RequestData, 
                                                                requestContentMediaType: restRequest.ContentMediaType,
                                                                payloadJsonSerializerLibrary: restRequest.ForcePayloadJsonSerializerLibrary);
             }
