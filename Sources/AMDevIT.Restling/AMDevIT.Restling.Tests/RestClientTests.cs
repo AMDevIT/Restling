@@ -10,7 +10,11 @@ using AMDevIT.Restling.Tests.Models.NS;
 using AMDevIT.Restling.Tests.Models.ST;
 using AMDevIT.Restling.Tests.Models.Xml;
 using Microsoft.Extensions.Logging;
+using System.Data.Common;
 using System.Diagnostics;
+using System.Net.Mime;
+using System.Reflection.Metadata;
+using System.Xml.Linq;
 
 namespace AMDevIT.Restling.Tests
 {
@@ -45,6 +49,28 @@ namespace AMDevIT.Restling.Tests
         }
 
         #region Quick methods
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/headers", "Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1dG50IjoiR3Jhc3NlcyBkaSBjYXpvIHRyYWZmZW8iLCJzdWJfY2VyaWFsIjoiU0hBREVPV19XRUxMRU5EIiwiZXhwIjoxNzAwMDAwMDAwLCJwZXJlY2hpIiOiJOdWFsbG9zIFNwYWdoZXR0aSIsImxldmVsIjoxMiwiaXNfcmVhbCI6ZmFsc2V9.XtQp-jYVaH5x9JZHKjG4dpK_Bj1E6dDcKzOYd5TxaVQ")]
+        public async Task TestHttpHeaders(string uri, string authScheme, string authHeaderValue)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<STHttpBinResponse> stRestRequestResult;
+            AuthenticationHeader authenticationHeader = new (authScheme, authHeaderValue);
+            RequestHeaders requestHeaders = new(authenticationHeader);
+            STHttpBinResponse? stsHttpBinResponse;
+
+            stRestRequestResult = await restlingClient.GetAsync<STHttpBinResponse>(uri,
+                                                                                   requestHeaders,
+                                                                                   cancellationToken: cancellationToken);
+
+            Assert.IsNotNull(stRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            stsHttpBinResponse = stRestRequestResult.Data;
+            Trace.WriteLine("St response:");
+            Trace.WriteLine(stsHttpBinResponse.ToString());
+        }
 
         [TestMethod]
         [DataRow("https://httpbin.org/get", "1234")]
@@ -317,6 +343,68 @@ namespace AMDevIT.Restling.Tests
             Assert.IsNotNull(restRequestResult.Data, "Rest response data is null");
             Trace.WriteLine(restRequestResult.ToString());            
             await File.WriteAllBytesAsync(destinationPath, restRequestResult.Data, cancellationToken);
+        }
+
+        [TestMethod]
+        [DataRow("https://httpbin.org/post", "Test data", null, true)]
+        [DataRow("https://httpbin.org/post", "{\"Test data:\": 10}", HttpMediaType.ApplicationJson, true)]
+        [DataRow("https://httpbin.org/post", "Test data", null, false)]
+        [DataRow("https://httpbin.org/post", "{\"Test data:\": 10}", HttpMediaType.ApplicationJson, false)]
+        public async Task PostRawDataAsync(string uri, string data, string? contentType = null, bool useExecuteRequest = true)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<NSHttpBinResponse> nsRestRequestResult;
+            NSHttpBinResponse? nsHttpBinResponse;
+            RestRawRequest restRawRequest;
+
+            if (string.IsNullOrWhiteSpace(contentType))            
+                restRawRequest = new(uri, Core.HttpMethod.Post, content: data);            
+            else            
+                restRawRequest = new(uri, Core.HttpMethod.Post, data, contentType);            
+
+            if (useExecuteRequest)
+                nsRestRequestResult = await restlingClient.ExecuteRequestAsync<NSHttpBinResponse>(restRawRequest, cancellationToken: cancellationToken);
+            else
+                nsRestRequestResult = await restlingClient.ExecuteRawRequestAsync<NSHttpBinResponse>(restRawRequest, cancellationToken: cancellationToken);
+
+            Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            nsHttpBinResponse = nsRestRequestResult.Data;
+            Trace.WriteLine("NS response:");
+            Trace.WriteLine(nsHttpBinResponse.ToString());
+            Trace.WriteLine($"Raw content: {nsRestRequestResult.Content}");
+        }
+
+        [TestMethod]
+        [DynamicData(nameof(GenerateDynamicDataForPostUrlEncoded), DynamicDataSourceType.Method)]        
+        public async Task PostFormUrlEncoded(string uri, IDictionary<string, string> parameters, bool useExecuteRequest = true)
+        {
+            CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
+            RestlingClient restlingClient = new(this.Logger);
+            RestRequestResult<NSHttpBinResponse> nsRestRequestResult;
+            NSHttpBinResponse? nsHttpBinResponse;
+            FormUrlEncodedRequest formUrlEncodedRequest;
+
+            formUrlEncodedRequest = new(uri, Core.HttpMethod.Post, parameters);
+
+            if (useExecuteRequest)
+                nsRestRequestResult = await restlingClient.ExecuteRequestAsync<NSHttpBinResponse>(formUrlEncodedRequest, cancellationToken: cancellationToken);
+            else
+                nsRestRequestResult = await restlingClient.ExecuteFormUrlEncodedRequest<NSHttpBinResponse>(formUrlEncodedRequest, cancellationToken: cancellationToken);
+
+            Assert.IsNotNull(nsRestRequestResult.Data, "Rest response data for Newtonsoft is null");
+
+            nsHttpBinResponse = nsRestRequestResult.Data;
+            Trace.WriteLine("NS response:");
+            Trace.WriteLine(nsHttpBinResponse.ToString());
+            Trace.WriteLine($"Raw content: {nsRestRequestResult.Content}");
+        }
+
+        private static IEnumerable<object[]> GenerateDynamicDataForPostUrlEncoded()
+        {
+            yield return new object[] { "https://httpbin.org/post", new Dictionary<string, string> { { "name", "Test name" }, { "surname", "Test surname" } }, true };
+            yield return new object[] { "https://httpbin.org/post", new Dictionary<string, string> { { "name", "Test name" }, { "surname", "Test surname" } }, false };
         }
 
         #endregion

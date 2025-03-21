@@ -1,4 +1,5 @@
-﻿using AMDevIT.Restling.Core.Text;
+﻿using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Text;
 using System.Net;
 
 namespace AMDevIT.Restling.Core
@@ -28,6 +29,7 @@ namespace AMDevIT.Restling.Core
                                  string? contentType,
                                  Charset charset,
                                  RetrievedContentResult? retrievedContent,
+                                 ResponseHeaders responseHeaders,
                                  Exception? exception = null) 
             : base(request,
                    statusCode, 
@@ -35,7 +37,8 @@ namespace AMDevIT.Restling.Core
                    rawContent, 
                    contentType,
                    charset,
-                   retrievedContent, 
+                   retrievedContent,                   
+                   responseHeaders,
                    exception)
         {
             this.data = data;

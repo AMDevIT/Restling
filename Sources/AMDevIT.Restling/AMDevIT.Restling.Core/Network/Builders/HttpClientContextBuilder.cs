@@ -218,7 +218,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 SocketsHttpHandler socketsHttpHandler = new()
                 {
                     CookieContainer = this.cookieContainer,
-                    UseCookies = true 
+                    UseCookies = true,
+                    AllowAutoRedirect = false
                 };
                 this.httpMessageHandler = socketsHttpHandler;
                 this.disposeHandler = true;
