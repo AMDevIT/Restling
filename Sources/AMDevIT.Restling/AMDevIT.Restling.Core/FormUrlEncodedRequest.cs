@@ -10,13 +10,13 @@ namespace AMDevIT.Restling.Core
     {
         #region Fields
 
-        private readonly Dictionary<string, string> parameters = [];
+        private readonly IDictionary<string, string> parameters = new Dictionary<string, string>();
 
         #endregion
 
         #region Properties
 
-        public Dictionary<string, string> Parameters => this.parameters;
+        public IDictionary<string, string> Parameters => this.parameters;
 
         #endregion
 
@@ -39,7 +39,7 @@ namespace AMDevIT.Restling.Core
 
         public FormUrlEncodedRequest(string uri,
                                      HttpMethod method,
-                                     Dictionary<string, string> parameters,
+                                     IDictionary<string, string> parameters,
                                      string? customMethod = null)
             : this(uri, method, customMethod)
         {
@@ -49,7 +49,7 @@ namespace AMDevIT.Restling.Core
         public FormUrlEncodedRequest(string uri,
                                      HttpMethod method,
                                      RequestHeaders headers,
-                                     Dictionary<string, string> parameters,
+                                     IDictionary<string, string> parameters,
                                      string? customMethod = null)
             : this(uri, method, headers, customMethod)
         {
