@@ -10,11 +10,7 @@ using AMDevIT.Restling.Tests.Models.NS;
 using AMDevIT.Restling.Tests.Models.ST;
 using AMDevIT.Restling.Tests.Models.Xml;
 using Microsoft.Extensions.Logging;
-using System.Data.Common;
 using System.Diagnostics;
-using System.Net.Mime;
-using System.Reflection.Metadata;
-using System.Xml.Linq;
 
 namespace AMDevIT.Restling.Tests
 {
