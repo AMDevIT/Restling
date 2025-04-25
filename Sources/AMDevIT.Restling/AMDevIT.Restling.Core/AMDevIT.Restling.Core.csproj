@@ -15,9 +15,9 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/AMDevIT/Restling.git</RepositoryUrl>
     <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
-    <AssemblyVersion>1.0.19.2</AssemblyVersion>
+    <AssemblyVersion>1.0.20.0</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
-    <PackageReleaseNotes>Updated depedency packages references.
+    <PackageReleaseNotes>Added support for URI validators for RestRequest. Added support for DtdProcessing rules for XML payloads deserializations.
 </PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
