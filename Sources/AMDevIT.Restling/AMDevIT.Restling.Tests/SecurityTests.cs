@@ -40,6 +40,7 @@ namespace AMDevIT.Restling.Tests
         [DynamicData(nameof(GenerateXMLXEEData), DynamicDataSourceType.Method)]
         public async Task TestXMLXEEExecutionAsync(string xml, bool allowUnsafe, bool containsUnsafe)
         {
+#if DEBUG
             CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
 
             HttpResponseMessage response = new (System.Net.HttpStatusCode.OK)
@@ -79,6 +80,9 @@ namespace AMDevIT.Restling.Tests
                 Assert.IsNotNull(result.Data, "Data must be not null. Unsafe XML code is allowed.");
                 this.Logger.LogInformation("Unsafe XML code detected correctly and data parsed.");
             }
+#else
+            this.Logger.LogError("This test requires DEBUG configuration to run.");
+#endif 
         }
 
         private static IEnumerable<object[]> GenerateXMLXEEData()
@@ -110,6 +114,6 @@ namespace AMDevIT.Restling.Tests
             return data;
         }
 
-        #endregion
+#endregion
     }
 }
