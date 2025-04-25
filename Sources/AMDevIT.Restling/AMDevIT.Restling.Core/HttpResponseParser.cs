@@ -5,6 +5,7 @@ using AMDevIT.Restling.Core.Text;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace AMDevIT.Restling.Core
@@ -26,6 +27,12 @@ namespace AMDevIT.Restling.Core
         #region Properties  
 
         protected ILogger? Logger => this.logger;
+
+        public bool AllowUnsafeXml { get; set; } = false;
+
+        public bool ThrowOnDecodeError { get; set; } = false;
+
+        public bool LogOnDecodeErrorIfNotSuccess { get; set; } = false;
 
         #endregion
 
@@ -88,6 +95,7 @@ namespace AMDevIT.Restling.Core
                 Charset charset = CharsetParser.Parse(contentType?.CharSet);
                 rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
                 content = RetrieveContent(rawContent, contentType);
+                Exception? decodeException = null;
 
                 // Response received.
 
@@ -106,11 +114,24 @@ namespace AMDevIT.Restling.Core
                         _ => this.DecodeData<T>(rawContent, content, contentType, payloadJsonSerializerLibrary: payloadJsonSerializerLibrary)
                     };
                 }
-                catch (Exception)
+                catch (Exception exception)
                 {
                     if (resultHttpMessage.IsSuccessStatusCode)
-                        throw;
-                    // If not, ignore the exception.
+                    {
+                        if (this.ThrowOnDecodeError)
+                            throw;
+                        else
+                            decodeException = exception;
+                    }
+                    else
+                    {
+                        if (this.LogOnDecodeErrorIfNotSuccess)
+                        {
+                            // If the request failed, we don't want to throw an exception for decoding.
+                            // We just log it and return the default value.
+                            this.Logger?.LogError(exception, "Failed to decode content.");
+                        }
+                    }
                 }             
 
                 responseHeaders = ResponseHeaders.Create(resultHttpMessage.Headers);
@@ -122,7 +143,8 @@ namespace AMDevIT.Restling.Core
                                         contentType?.MediaType,
                                         charset,
                                         content,
-                                        responseHeaders);
+                                        responseHeaders,
+                                        exception: decodeException);
             }
             else
             {
@@ -187,14 +209,22 @@ namespace AMDevIT.Restling.Core
                     {
                         if (content.Content is string xml)
                         {
-                            XmlSerializer serializer = new(typeof(T));
-                            using var stringReader = new StringReader(xml);
-                            data = (T?)serializer.Deserialize(stringReader);
+                            if (!this.AllowUnsafeXml)
+                            {
+                                data = this.DecodeXmlSecure<T>(xml);
+                            }
+                            else
+                            {
+                                XmlSerializer serializer = new(typeof(T));
+                                using var stringReader = new StringReader(xml);
+                                data = (T?)serializer.Deserialize(stringReader);
+                            }
                         }
                     }
                     catch (Exception exc)
                     {
                         this.Logger?.LogError(exc, "Failed to deserialize XML content.");
+                        throw;
                     }
                     break;
 
@@ -306,6 +336,19 @@ namespace AMDevIT.Restling.Core
                 _ => Encoding.UTF8.GetString(rawContent),
             };
             return result;
+        }
+
+        private T? DecodeXmlSecure<T>(string xml)
+        {
+            XmlSerializer serializer = new(typeof(T));
+            XmlReaderSettings settings = new()
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null
+            };
+
+            using var reader = XmlReader.Create(new StringReader(xml), settings);
+            return (T?)serializer.Deserialize(reader);
         }
 
         #endregion
