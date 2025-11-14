@@ -22,8 +22,8 @@ While chatting with a friend, the name came to mind as a pun combining "REST" an
 
 Restling supports both the latest .NET version and the latest LTS version, ensuring compatibility and stability for a wide range of projects.
 
-*LTS Version:* .NET 8.0
-*STS Version:* .NET 9.0
+*LTS Version:* .NET 8, .NET 10
+*STS Version:* .NET 9
 
 ## Installation
 
