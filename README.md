@@ -1,3 +1,8 @@
+[![NuGet](https://img.shields.io/nuget/v/Restling)](https://www.nuget.org/packages/Restling)
+[![Downloads](https://img.shields.io/nuget/dt/Restling)](https://www.nuget.org/packages/Restling)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-512BD4)](https://dotnet.microsoft.com)
+
 # Restling 
 
 ![Restling Icon](Assets/Icons/RestlingIcon.png)
