@@ -38,7 +38,7 @@ namespace AMDevIT.Restling.Tests
 
         [TestMethod]
         [DynamicData(nameof(GenerateXMLXEEData), DynamicDataSourceType.Method)]
-        public Task TestXMLXEEExecutionAsync(string xml, bool allowUnsafe, bool containsUnsafe)
+        public async Task TestXMLXEEExecutionAsync(string xml, bool allowUnsafe, bool containsUnsafe)
         {
 #if DEBUG
             CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;
@@ -83,7 +83,6 @@ namespace AMDevIT.Restling.Tests
 #else
             this.Logger.LogError("This test requires DEBUG configuration to run.");
 #endif 
-            return Task.CompletedTask;
         }
 
         private static IEnumerable<object[]> GenerateXMLXEEData()
