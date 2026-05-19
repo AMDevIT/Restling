@@ -230,18 +230,34 @@ namespace AMDevIT.Restling.Core
 
             try
             {
-                this.Logger?.LogDebug("Executing GET REST request to {uri}", uri);
+#if DEBUG
+                if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+                    this.Logger?.LogDebug("Executing GET REST request to {uri}", uri);
+#else
+                if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+                    this.Logger?.LogDebug("Executing GET REST request.");
+
+#endif
+
                 stopwatch = Stopwatch.StartNew();
                 resultHttpMessage = await this.httpClientContext.HttpClient.GetAsync(uri, cancellationToken);
                 stopwatch.Stop();
-                this.Logger?.LogDebug("GET REST request to {uri} executed in {elapsed} ms", uri, stopwatch.ElapsedMilliseconds);
+#if DEBUG
+                if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+                    this.Logger?.LogDebug("GET REST request to {uri} executed in {elapsed} ms", uri, stopwatch.ElapsedMilliseconds);
+#else
+                if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+                    this.Logger?.LogDebug("GET REST request executed in {elapsed} ms", stopwatch.ElapsedMilliseconds);
+
+#endif
             }
             catch (Exception exc)
             {
                 if (stopwatch.IsRunning)
                     stopwatch.Stop();
 
-                this.Logger?.LogError(exc, "Cannot execute GET REST request.");
+                if (this.Logger?.IsEnabled(LogLevel.Error) == true)
+                    this.Logger?.LogError(exc, "Cannot execute GET REST request.");
                 return new RestRequestResult<T>(restRequest, exc, stopwatch.Elapsed);
             }
             finally
@@ -261,13 +277,14 @@ namespace AMDevIT.Restling.Core
             }
             catch (Exception exc)
             {
-                this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
+                if (this.Logger?.IsEnabled(LogLevel.Trace) == true)
+                    this.Logger?.LogTrace("Cannot dispose the HttpResponseMessage instance: {exc}", exc.Message);
             }
 
             return restRequestResult;
         }
 
-        #endregion
+#endregion
 
         #region POST
 
@@ -1448,6 +1465,6 @@ namespace AMDevIT.Restling.Core
             return httpClientBuilder.Build();
         }
 
-        #endregion
+#endregion
     }
 }
