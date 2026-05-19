@@ -13,7 +13,12 @@
     <PackageProjectUrl>https://github.com/AMDevIT/Restling</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/AMDevIT/Restling.git</RepositoryUrl>
-    <PackageTags>rest;httpclient;api;apiclient;client;restclient;restling</PackageTags>
+	  <PackageTags>
+		  rest;http;httpclient;api;apiclient;client;restclient;
+		  dotnet;csharp;networking;web;request;response;
+		  json;xml;serialization;deserialization;async;await;typed-client;		  
+		  fluent;builder;wrapper
+	  </PackageTags>
     <AssemblyVersion>1.0.25.0</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <PackageReleaseNotes>Fix some security vulnerabilities in diagnostic logs. Updated dependencies to latest versions. Filtered some log messages.
