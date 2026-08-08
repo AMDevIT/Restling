@@ -82,6 +82,26 @@ This makes it immediately clear whether a variable should be looked for in the c
 Always indent code correctly. Do not insert a line break immediately after an opening parenthesis. Always align function arguments, and try to keep short lambdas on a single line.
 Each indentation level uses 4 spaces.
 
+### Method and Constructor Call Formatting
+
+These rules apply both to source files and to C# examples inside Markdown files.
+
+- Never place the first argument on a new line after the opening parenthesis.
+- When arguments span multiple lines, keep the first argument on the same line as the method or constructor call.
+- Align every subsequent argument vertically with the first argument.
+- Apply the same formatting to target-typed `new(...)` expressions.
+- Before completing documentation changes, verify every multiline C# invocation against these rules.
+
+Example:
+
+```csharp
+HttpCookieData sessionCookie = new("session-id",
+                                   sessionId,
+                                   domain: "api.example.com",
+                                   path: "/",
+                                   isSecure: true);
+```
+
 Examples:
 
 ```csharp

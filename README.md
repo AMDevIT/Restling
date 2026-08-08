@@ -57,9 +57,8 @@ using AMDevIT.Restling.Core;
 RestlingClient client = new();
 RestRequestResult<TodoItem> result;
 
-result = await client.GetAsync<TodoItem>(
-    "https://api.example.com/todos/1",
-    cancellationToken: cancellationToken);
+result = await client.GetAsync<TodoItem>("https://api.example.com/todos/1",
+                                         cancellationToken: cancellationToken);
 
 if (result.IsSuccessful && result.Data is not null)
 {
@@ -81,10 +80,9 @@ The first generic type is the response model and the second is the request model
 CreateTodoRequest payload = new("Read the Restling wiki", Completed: false);
 RestRequestResult<TodoItem> result;
 
-result = await client.PostAsync<TodoItem, CreateTodoRequest>(
-    "https://api.example.com/todos",
-    payload,
-    cancellationToken: cancellationToken);
+result = await client.PostAsync<TodoItem, CreateTodoRequest>("https://api.example.com/todos",
+                                                             payload,
+                                                             cancellationToken: cancellationToken);
 ```
 
 ### Send request-specific headers
@@ -95,10 +93,9 @@ using AMDevIT.Restling.Core.Network;
 RequestHeaders headers = new(new AuthenticationHeader("Bearer", accessToken));
 headers.Headers.Add("X-Correlation-ID", correlationId);
 
-RestRequestResult<TodoItem> result = await client.GetAsync<TodoItem>(
-    "https://api.example.com/todos/1",
-    headers,
-    cancellationToken: cancellationToken);
+RestRequestResult<TodoItem> result = await client.GetAsync<TodoItem>("https://api.example.com/todos/1",
+                                                                     headers,
+                                                                     cancellationToken: cancellationToken);
 ```
 
 ## Configure a client
@@ -143,15 +140,13 @@ RestlingClient client = new(builder);
 ```csharp
 using AMDevIT.Restling.Core.Network;
 
-RestRawRequest request = new(
-    "https://api.example.com/events",
-    AMDevIT.Restling.Core.HttpMethod.Post,
-    content: json,
-    contentType: HttpMediaType.ApplicationJson);
+RestRawRequest request = new("https://api.example.com/events",
+                             AMDevIT.Restling.Core.HttpMethod.Post,
+                             content: json,
+                             contentType: HttpMediaType.ApplicationJson);
 
-RestRequestResult<ApiResponse> result = await client.ExecuteRawRequestAsync<ApiResponse>(
-    request,
-    cancellationToken: cancellationToken);
+RestRequestResult<ApiResponse> result = await client.ExecuteRawRequestAsync<ApiResponse>(request,
+                                                                                         cancellationToken: cancellationToken);
 ```
 
 ### Form URL-encoded content
@@ -163,14 +158,12 @@ IDictionary<string, string> fields = new Dictionary<string, string>
     ["scope"] = "api.read"
 };
 
-FormUrlEncodedRequest request = new(
-    "https://identity.example.com/token",
-    AMDevIT.Restling.Core.HttpMethod.Post,
-    fields);
+FormUrlEncodedRequest request = new("https://identity.example.com/token",
+                                    AMDevIT.Restling.Core.HttpMethod.Post,
+                                    fields);
 
-RestRequestResult<TokenResponse> result = await client.ExecuteFormUrlEncodedRequest<TokenResponse>(
-    request,
-    cancellationToken: cancellationToken);
+RestRequestResult<TokenResponse> result = await client.ExecuteFormUrlEncodedRequest<TokenResponse>(request,
+                                                                                                   cancellationToken: cancellationToken);
 ```
 
 ## JSON serializer selection
@@ -182,10 +175,9 @@ using AMDevIT.Restling.Core.Serialization;
 
 client.SelectedDefaultSerializationLibrary = PayloadJsonSerializerLibrary.SystemTextJson;
 
-RestRequestResult<TodoItem> result = await client.GetAsync<TodoItem>(
-    "https://api.example.com/todos/1",
-    forcePayloadJsonSerializerLibrary: PayloadJsonSerializerLibrary.NewtonsoftJson,
-    cancellationToken: cancellationToken);
+RestRequestResult<TodoItem> result = await client.GetAsync<TodoItem>("https://api.example.com/todos/1",
+                                                                     forcePayloadJsonSerializerLibrary: PayloadJsonSerializerLibrary.NewtonsoftJson,
+                                                                     cancellationToken: cancellationToken);
 ```
 
 ## Cookies
@@ -196,12 +188,11 @@ Inject individual cookies or a complete `CookieContainer` through the builder:
 using AMDevIT.Restling.Core.Cookies;
 using AMDevIT.Restling.Core.Network.Builders;
 
-HttpCookieData sessionCookie = new(
-    "session-id",
-    sessionId,
-    domain: "api.example.com",
-    path: "/",
-    isSecure: true);
+HttpCookieData sessionCookie = new("session-id",
+                                   sessionId,
+                                   domain: "api.example.com",
+                                   path: "/",
+                                   isSecure: true);
 
 HttpClientContextBuilder builder = new();
 builder.AddCookie(sessionCookie);
@@ -216,9 +207,8 @@ Restling also provides `CookieStorageProvider` for loading and saving cookies to
 Restling returns a result object for HTTP failures and for most execution or decoding errors. Check `IsSuccessful`, then inspect `StatusCode` and `Exception`:
 
 ```csharp
-RestRequestResult<TodoItem> result = await client.GetAsync<TodoItem>(
-    uri,
-    cancellationToken: cancellationToken);
+RestRequestResult<TodoItem> result = await client.GetAsync<TodoItem>(uri,
+                                                                     cancellationToken: cancellationToken);
 
 if (!result.IsSuccessful)
 {

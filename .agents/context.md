@@ -2,7 +2,7 @@
 
 ## Objective and status
 
-- Objective: update the main Restling README with the current public APIs and quick starts, then create a complete GitHub Wiki guide for using Restling.
+- Objective: update the main Restling README with the current public APIs and quick starts, create a complete GitHub Wiki guide, and enforce the repository's multiline invocation formatting in all documentation examples.
 - Status: completed.
 
 ## Decisions made
@@ -13,12 +13,15 @@
 - Kept the README focused on installation, core capabilities, and copyable quick starts.
 - Split detailed guidance into topic-specific GitHub Wiki pages and added `_Sidebar.md` for navigation.
 - Derived examples and behavioral notes from the current source and tests rather than from the previous README.
+- Expanded `AGENTS.md` with an explicit rule for method and constructor calls: the first argument remains beside the opening parenthesis and subsequent arguments align vertically with it. The rule explicitly applies to C# examples in Markdown.
+- Reformatted every multiline C# invocation added to the README and wiki to follow that rule.
 - Created only this context file, without a separate progress file, as explicitly requested by the user.
 
 ## Affected files
 
 Main repository:
 
+- `AGENTS.md`
 - `README.md`
 - `.agents/context.md`
 
@@ -43,6 +46,8 @@ Wiki repository:
 - Checked all edited Markdown files for balanced fenced code blocks: passed.
 - Checked relative links between GitHub Wiki pages and their target files: passed.
 - Searched for the obsolete package ID and known example/version mistakes: no remaining matches.
+- Checked C# fences in the README and wiki for invocations ending immediately after an opening parenthesis: no matches.
+- Checked continuation columns for multiline method and constructor calls: every subsequent argument aligns with the first argument.
 - Did not run `dotnet restore`, `dotnet build`, or tests because the user explicitly limited verification to Markdown files.
 
 ## Open issues and recommended next step
