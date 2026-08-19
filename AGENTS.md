@@ -9,6 +9,12 @@ These instructions apply to the entire repository.
 
 ## Workflow
 
+Try always to minimize the use of token if it doesn't doesn't lower the quality of the answer.
+
+Before everything, fetch from the repository and if pulls are ask for confirmation for executing the pulls. 
+If the user agree, execute the pull. If merge of files is required, analyze a merge plan and if confirmed by the user, execute the merge. 
+If not confirmed, close the request until the user manage to merge the files manually.
+
 1. Before starting, read the `.md` files in the `.agents` subfolder.
 2. Preserve the user's changes and do not modify files unrelated to the task.
 3. Always analyze the requested work first and ask for confirmation.
