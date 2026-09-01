@@ -24,6 +24,7 @@ namespace AMDevIT.Restling.Tests
             Assert.IsInstanceOfType<JsonContentCodec>(registry.FindReader("application/hal+json"));
             Assert.IsInstanceOfType<XmlContentCodec>(registry.FindReader("application/xml"));
             Assert.IsInstanceOfType<TextContentCodec>(registry.FindReader("text/plain"));
+            Assert.IsInstanceOfType<MultipartContentCodec>(registry.FindReader("multipart/mixed"));
             Assert.IsInstanceOfType<BinaryContentCodec>(registry.FindReader("image/png"));
             Assert.IsInstanceOfType<BinaryContentCodec>(registry.FindWriter("image/png"));
             Assert.IsNull(registry.Codecs.OfType<CsvContentCodec>().SingleOrDefault());

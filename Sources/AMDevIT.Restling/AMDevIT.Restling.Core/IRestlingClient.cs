@@ -1,6 +1,7 @@
 ﻿using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Core.Network.Builders;
 using AMDevIT.Restling.Core.Serialization;
+using AMDevIT.Restling.Core.Multipart;
 
 namespace AMDevIT.Restling.Core
 {
@@ -209,6 +210,28 @@ namespace AMDevIT.Restling.Core
         Task<RestRequestResult<D>> ExecuteRequestAsync<D, T>(RestRequest<T> restRequest,
                                                              bool throwOnGenerics = false,
                                                              CancellationToken cancellationToken = default);
+
+        /// <summary>Executes a multipart request.</summary>
+        Task<RestRequestResult> ExecuteMultipartRequestAsync(MultipartRequest multipartRequest,
+                                                             CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support multipart requests.");
+        }
+
+        /// <summary>Executes a multipart request and deserializes its response.</summary>
+        Task<RestRequestResult<T>> ExecuteMultipartRequestAsync<T>(MultipartRequest multipartRequest,
+                                                                   CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support multipart requests.");
+        }
+
+        /// <summary>Streams parts from a multipart/x-mixed-replace response.</summary>
+        IAsyncEnumerable<MultipartPart> StreamMultipartMixedReplaceAsync(RestRequest restRequest,
+                                                                         MultipartOptions? options = null,
+                                                                         CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support multipart streaming.");
+        }
 
         #endregion
 

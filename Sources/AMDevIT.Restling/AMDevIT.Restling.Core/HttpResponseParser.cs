@@ -185,7 +185,8 @@ namespace AMDevIT.Restling.Core
             {
                 Logger = this.Logger,
                 JsonSerializerLibrary = payloadJsonSerializerLibrary,
-                AllowUnsafeXml = this.AllowUnsafeXml
+                AllowUnsafeXml = this.AllowUnsafeXml,
+                Codecs = this.Codecs
             };
             if (codec is IProblemDetailsCodec && typeof(T) != typeof(RestProblemDetails))
                 return default;
@@ -213,7 +214,7 @@ namespace AMDevIT.Restling.Core
 
             try
             {
-                ContentCodecContext context = new() { Logger = this.Logger };
+                ContentCodecContext context = new() { Logger = this.Logger, Codecs = this.Codecs };
                 result.Problem = problemCodec.DeserializeProblem(result.RawContent, result.RetrievedContent?.ContentType, context);
             }
             catch (Exception exception)

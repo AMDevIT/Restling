@@ -162,6 +162,53 @@ RestlingClient client = new(sharedContext, RestlingClientContextOwnership.Owned)
 
 `DisposeContext` remains available as a compatibility alias. At the context level, `HttpClientContextOwnership` independently controls disposal of `HttpClient` and `HttpMessageHandler`. A builder-created context always owns its `HttpClient`; handler ownership can be selected with `HttpMessageHandlerOwnership.Borrowed` or `Owned`. The old boolean `AddHandler` overload remains supported.
 
+## Multipart content
+
+`MultipartRequest` creates fresh content for every execution. Buffered parts are reusable; stream and arbitrary content factories return instances owned and disposed by that execution:
+
+```csharp
+MultipartRequest request = new("https://api.example.com/documents", HttpMethod.Post);
+request.AddText("description", "Quarterly report")
+       .AddObject("metadata", metadata, HttpMediaType.ApplicationJson)
+       .AddStream("document",
+                  () => File.OpenRead(documentPath),
+                  "report.pdf",
+                  HttpMediaType.ApplicationPdf);
+
+RestRequestResult<UploadResult> result = await client.ExecuteMultipartRequestAsync<UploadResult>(request);
+```
+
+Buffered `multipart/*` responses can be decoded as `MultipartDocument`. Parts retain their order, duplicate names, headers and original bytes. Each part can be decoded through the same codec registry:
+
+```csharp
+RestRequestResult<MultipartDocument> result = await client.GetAsync<MultipartDocument>(uri);
+
+foreach (MultipartPart part in result.Data?.Parts ?? [])
+{
+    byte[] original = part.RawContent;
+    Metadata? metadata = part.ContentType?.MediaType == HttpMediaType.ApplicationJson
+        ? part.Deserialize<Metadata>()
+        : null;
+}
+```
+
+Nested multipart entities are exposed through `NestedContent`; `RootPart` resolves the `start` parameter of `multipart/related`, and `ContentRange` exposes `multipart/byteranges` metadata. File names are untrusted metadata and are never interpreted as local paths.
+
+`multipart/signed` and `multipart/encrypted` are parsed structurally, but Restling does not verify signatures or decrypt their parts.
+
+Parsing defaults can be replaced by registering `new MultipartContentCodec(new MultipartOptions { ... })` before the standard codecs.
+
+`multipart/x-mixed-replace` has a dedicated streaming API because the response can be unbounded:
+
+```csharp
+RestRequest streamRequest = new(uri, HttpMethod.Get);
+
+await foreach (MultipartPart part in client.StreamMultipartMixedReplaceAsync(streamRequest, cancellationToken: cancellationToken))
+{
+    ProcessFrame(part.RawContent, part.ContentType);
+}
+```
+
 ## More request types
 
 ### Raw content

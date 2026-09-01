@@ -20,9 +20,13 @@ namespace AMDevIT.Restling.Core.Codecs
 
         #region .ctor
 
-        /// <summary>Registers JSON, XML, text and the binary fallback.</summary>
+        /// <summary>Registers JSON, XML, text, multipart and the binary fallback.</summary>
         public ContentCodecRegistry()
-            : this([new JsonContentCodec(), new XmlContentCodec(), new TextContentCodec(), new BinaryContentCodec()])
+            : this([new JsonContentCodec(),
+                    new XmlContentCodec(),
+                    new TextContentCodec(),
+                    new MultipartContentCodec(),
+                    new BinaryContentCodec()])
         {
         }
 

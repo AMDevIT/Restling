@@ -3,9 +3,11 @@ using AMDevIT.Restling.Core.Network.Builders;
 using AMDevIT.Restling.Core.Codecs;
 using System.Net.Http.Headers;
 using AMDevIT.Restling.Core.Serialization;
+using AMDevIT.Restling.Core.Multipart;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text;
+using System.Runtime.CompilerServices;
 using NetHttpMethod = System.Net.Http.HttpMethod;
 
 namespace AMDevIT.Restling.Core
@@ -852,6 +854,12 @@ namespace AMDevIT.Restling.Core
 
             switch (restRequest)
             {
+                case MultipartRequest multipartRequest:
+                    {
+                        restRequestResult = await this.ExecuteMultipartRequestAsync(multipartRequest, cancellationToken);
+                    }
+                    break;
+
                 case FormUrlEncodedRequest formUrlEncodedRequest:
                     {
                         restRequestResult = await this.ExecuteFormUrlEncodedRequest(formUrlEncodedRequest, cancellationToken);
@@ -917,6 +925,12 @@ namespace AMDevIT.Restling.Core
 
             switch (restRequest)
             {
+                case MultipartRequest multipartRequest:
+                    {
+                        restRequestResult = await this.ExecuteMultipartRequestAsync<T>(multipartRequest, cancellationToken);
+                    }
+                    break;
+
                 case FormUrlEncodedRequest formUrlEncodedRequest:
                     {
                         restRequestResult = await this.ExecuteFormUrlEncodedRequest<T>(formUrlEncodedRequest, cancellationToken);
@@ -953,6 +967,86 @@ namespace AMDevIT.Restling.Core
             }
             
             return restRequestResult;
+        }
+
+        /// <summary>Executes a multipart request.</summary>
+        public async Task<RestRequestResult> ExecuteMultipartRequestAsync(MultipartRequest multipartRequest,
+                                                                          CancellationToken cancellationToken = default)
+        {
+            HttpRequestMessage httpRequest;
+            RestRequestResult result;
+
+            ArgumentNullException.ThrowIfNull(multipartRequest);
+            using (httpRequest = this.BuildHttpRequestMessage(multipartRequest))
+            {
+                httpRequest.Content = this.BuildMultipartHttpContent(multipartRequest);
+                result = await this.ExecuteRequestInternalAsync(multipartRequest,
+                                                                httpRequest,
+                                                                cancellationToken: cancellationToken);
+            }
+            return result;
+        }
+
+        /// <summary>Executes a multipart request and deserializes its response.</summary>
+        public async Task<RestRequestResult<T>> ExecuteMultipartRequestAsync<T>(MultipartRequest multipartRequest,
+                                                                                CancellationToken cancellationToken = default)
+        {
+            HttpRequestMessage httpRequest;
+            RestRequestResult<T> result;
+
+            ArgumentNullException.ThrowIfNull(multipartRequest);
+            using (httpRequest = this.BuildHttpRequestMessage(multipartRequest))
+            {
+                httpRequest.Content = this.BuildMultipartHttpContent(multipartRequest);
+                result = await this.ExecuteRequestInternalAsync<T>(multipartRequest,
+                                                                   httpRequest,
+                                                                   cancellationToken: cancellationToken);
+            }
+            return result;
+        }
+
+        /// <summary>Streams parts from a multipart/x-mixed-replace response until cancellation or its closing boundary.</summary>
+        public async IAsyncEnumerable<MultipartPart> StreamMultipartMixedReplaceAsync(RestRequest restRequest,
+                                                                                      MultipartOptions? options = null,
+                                                                                      [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            ContentCodecContext codecContext;
+            HttpRequestMessage httpRequest;
+            MediaTypeHeaderValue contentType;
+
+            ArgumentNullException.ThrowIfNull(restRequest);
+            options ??= new MultipartOptions();
+            options.Validate();
+
+            using (httpRequest = this.BuildHttpRequestMessage(restRequest))
+            using (HttpResponseMessage response = await this.httpClientContext.HttpClient.SendAsync(httpRequest,
+                                                                                                      HttpCompletionOption.ResponseHeadersRead,
+                                                                                                      cancellationToken))
+            {
+                response.EnsureSuccessStatusCode();
+                contentType = response.Content.Headers.ContentType ??
+                              throw new InvalidDataException("The multipart response has no Content-Type header.");
+                if (!string.Equals(contentType.MediaType, "multipart/x-mixed-replace", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("The response is not multipart/x-mixed-replace.");
+
+                codecContext = new ContentCodecContext
+                {
+                    Logger = this.Logger,
+                    JsonSerializerLibrary = restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                    Codecs = this.Context.Codecs
+                };
+
+                using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                await foreach (MultipartPart part in MultipartMixedReplaceReader.ReadAsync(stream,
+                                                                                            contentType,
+                                                                                            this.Context.Codecs,
+                                                                                            codecContext,
+                                                                                            options,
+                                                                                            cancellationToken))
+                {
+                    yield return part;
+                }
+            }
         }
 
         /// <summary>
@@ -1419,6 +1513,18 @@ namespace AMDevIT.Restling.Core
             return httpContent;
         }
 
+        /// <summary>Builds multipart content using the current codec snapshot.</summary>
+        protected System.Net.Http.MultipartContent BuildMultipartHttpContent(MultipartRequest request)
+        {
+            ContentCodecContext context = new()
+            {
+                Logger = this.Logger,
+                JsonSerializerLibrary = request.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                Codecs = this.Context.Codecs
+            };
+            return request.BuildContent(this.Context.Codecs, context);
+        }
+
         /// <summary>Builds JSON content while preserving legacy media-type labels and null payloads.</summary>
         protected HttpContent BuildJsonHttpContent<T>(T requestData,
                                                       string? requestContentMediaType = null,
@@ -1432,7 +1538,12 @@ namespace AMDevIT.Restling.Core
                 : requestContentMediaType);
             IContentCodec codec = this.Context.Codecs.FindWriter(HttpMediaType.ApplicationJson)
                 ?? throw new NotSupportedException("No JSON writer is registered.");
-            ContentCodecContext context = new() { Logger = this.Logger, JsonSerializerLibrary = payloadJsonSerializerLibrary };
+            ContentCodecContext context = new()
+            {
+                Logger = this.Logger,
+                JsonSerializerLibrary = payloadJsonSerializerLibrary,
+                Codecs = this.Context.Codecs
+            };
             return codec.Serialize(requestData, contentType, context);
         }
 
@@ -1445,7 +1556,8 @@ namespace AMDevIT.Restling.Core
             ContentCodecContext context = new()
             {
                 Logger = this.Logger,
-                JsonSerializerLibrary = request.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary
+                JsonSerializerLibrary = request.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                Codecs = this.Context.Codecs
             };
             return codec.Serialize(request.RequestData, contentType, context);
         }

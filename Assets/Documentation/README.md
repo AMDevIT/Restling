@@ -21,6 +21,10 @@ Restling decodes responses by media type. Add custom codecs through `HttpClientC
 
 Clients created with the default constructor or a builder own their generated context. Clients receiving an existing `HttpClientContext` borrow it by default. Use `RestlingClientContextOwnership` to select the behavior explicitly and `HttpClientContextOwnership` to control disposal of the underlying `HttpClient` and handler. `DisposeContext` remains a compatibility alias.
 
+## Multipart content
+
+`MultipartRequest` sends form-data or any MIME multipart subtype with text, buffered binary, stream, arbitrary `HttpContent`, and codec-backed object parts. Buffered multipart responses deserialize to `MultipartDocument`, retaining ordered parts, duplicate names, headers, raw bytes, nested multipart content, related roots, and byte ranges. `multipart/x-mixed-replace` is available through a dedicated asynchronous streaming API.
+
 ## Why the name "Restling"?
 
 While chatting with a friend, the name came to mind as a pun combining "REST" and "Changeling," the Fae beings from Northern folk tales. Restling is a library that has taken on the form of a REST client—though its journey started as something entirely different.

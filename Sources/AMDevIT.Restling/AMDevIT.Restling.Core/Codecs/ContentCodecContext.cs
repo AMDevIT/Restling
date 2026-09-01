@@ -15,6 +15,7 @@ namespace AMDevIT.Restling.Core.Codecs
         public PayloadJsonSerializerLibrary? JsonSerializerLibrary { get; init; }
         public ILogger? Logger { get; init; }
         public bool AllowUnsafeXml { get; init; }
+        public ContentCodecRegistry? Codecs { get; init; }
 
         #endregion
 
