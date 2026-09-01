@@ -13,16 +13,13 @@ namespace AMDevIT.Restling.Core
     /// <summary>
     /// Implements a REST client to execute HTTP requests to remote resources.
     /// </summary>
-    /// <param name="httpClientContext">A valid <see cref="HttpClientContext"/> that will be used to execute requests</param>
-    /// <param name="logger">A valid implementation of <see cref="ILogger"/> that will be used to log REST client messages</param>
-    public class RestlingClient(HttpClientContext httpClientContext,
-                                ILogger? logger)
-        : IRestlingClient, IDisposable
+    public class RestlingClient : IRestlingClient, IDisposable
     {
         #region Fields
 
-        private readonly HttpClientContext httpClientContext = httpClientContext;
-        private readonly ILogger? logger = logger;
+        private readonly HttpClientContext httpClientContext;
+        private readonly ILogger? logger;
+        private RestlingClientContextOwnership contextOwnership;
         private bool disposedValue;
 
         #endregion
@@ -42,14 +39,26 @@ namespace AMDevIT.Restling.Core
             set;
         } = PayloadJsonSerializerLibrary.Automatic;
 
-        /// <summary>
-        /// Dispose the HttpClient instance when disposing the RestlingClient instance.
-        /// </summary>
+        /// <summary>Gets or sets whether this client owns and disposes its context.</summary>
+        public RestlingClientContextOwnership ContextOwnership
+        {
+            get => this.contextOwnership;
+            set
+            {
+                if (!Enum.IsDefined(value))
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                this.contextOwnership = value;
+            }
+        }
+
+        /// <summary>Compatibility alias for ContextOwnership.</summary>
         public bool DisposeContext
         {
-            get;
-            set;
-        }      
+            get => this.ContextOwnership == RestlingClientContextOwnership.Owned;
+            set => this.ContextOwnership = value
+                ? RestlingClientContextOwnership.Owned
+                : RestlingClientContextOwnership.Borrowed;
+        }
 
         /// <summary>
         /// Gets a value indicating whether the instance has been disposed.
@@ -73,7 +82,7 @@ namespace AMDevIT.Restling.Core
         /// Initializes a new instance of the <see cref="RestlingClient"/> class using a dedicated HttpClient with default values.
         /// </summary>
         public RestlingClient()
-            : this(BuildDefaultHttpClientContext(), null) 
+            : this(BuildDefaultHttpClientContext(), null, RestlingClientContextOwnership.Owned)
         {
 
         }
@@ -84,18 +93,58 @@ namespace AMDevIT.Restling.Core
         /// </summary>
         /// <param name="logger">The logger instance used to log the messages from the client</param>
         public RestlingClient(ILogger logger)
-          : this(BuildDefaultHttpClientContext(), logger)
+            : this(BuildDefaultHttpClientContext(), logger, RestlingClientContextOwnership.Owned)
         {
 
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RestlingClient"/> class using a dedicated HttpClient build by the <see cref="IHttpClientContextBuilder"/> instance.
+        /// Initializes a new client that borrows an externally managed context.
         /// </summary>
-        /// <param name="httpClientBuilder">The IHttpClientBuilder implementation instance that will be used to build the HttpClient associated to the current client.</param>
+        /// <param name="httpClientContext">The context that remains owned by the caller.</param>
+        /// <param name="logger">The optional logger used by this client.</param>
+        public RestlingClient(HttpClientContext httpClientContext, ILogger? logger)
+            : this(httpClientContext, logger, RestlingClientContextOwnership.Borrowed)
+        {
+        }
+
+        /// <summary>Initializes a client with an explicit context ownership contract.</summary>
+        /// <param name="httpClientContext">The context used by the client.</param>
+        /// <param name="logger">The optional logger used by this client.</param>
+        /// <param name="contextOwnership">Whether the client borrows or owns the context.</param>
+        public RestlingClient(HttpClientContext httpClientContext,
+                              ILogger? logger,
+                              RestlingClientContextOwnership contextOwnership)
+        {
+            ArgumentNullException.ThrowIfNull(httpClientContext);
+            this.httpClientContext = httpClientContext;
+            this.logger = logger;
+            this.ContextOwnership = contextOwnership;
+        }
+
+        /// <summary>Initializes a new client that borrows an externally managed context.</summary>
+        /// <param name="httpClientContext">The context that remains owned by the caller.</param>
+        public RestlingClient(HttpClientContext httpClientContext)
+            : this(httpClientContext, null, RestlingClientContextOwnership.Borrowed)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RestlingClient"/> class using an owned context built by the supplied builder.
+        /// </summary>
+        /// <param name="httpClientBuilder">The builder used to create the context owned by this client.</param>
         public RestlingClient(IHttpClientContextBuilder httpClientBuilder)
-            : this(httpClientBuilder.Build(), null)
-        {            
+            : this(BuildContext(httpClientBuilder), null, RestlingClientContextOwnership.Owned)
+        {
+        }
+
+        /// <summary>Initializes a new client with an explicit context ownership contract.</summary>
+        /// <param name="httpClientContext">The context used by the client.</param>
+        /// <param name="contextOwnership">Whether the client borrows or owns the context.</param>
+        public RestlingClient(HttpClientContext httpClientContext,
+                              RestlingClientContextOwnership contextOwnership)
+            : this(httpClientContext, null, contextOwnership)
+        {
         }
 
         /// <summary>
@@ -106,7 +155,7 @@ namespace AMDevIT.Restling.Core
         /// <param name="logger">The logger instance used to log the messages from the client</param>
         public RestlingClient(IHttpClientContextBuilder httpClientBuilder,
                               ILogger logger)
-            : this(httpClientBuilder.Build(), logger)
+            : this(BuildContext(httpClientBuilder), logger, RestlingClientContextOwnership.Owned)
         {
         }
 
@@ -1327,7 +1376,7 @@ namespace AMDevIT.Restling.Core
         }
 
         /// <summary>
-        /// Dispose the HttpClient instance and all the handlers when disposing the RestlingClient instance, if <see cref="DisposeContext"/> is set to true.
+        /// Disposes the context only when ContextOwnership is Owned.
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
@@ -1335,7 +1384,7 @@ namespace AMDevIT.Restling.Core
             {
                 if (disposing)
                 {
-                    if (this.DisposeContext)
+                    if (this.ContextOwnership == RestlingClientContextOwnership.Owned)
                     {
                         this.httpClientContext.Dispose();
                     }
@@ -1471,6 +1520,13 @@ namespace AMDevIT.Restling.Core
         protected static HttpClientContext BuildDefaultHttpClientContext()
         {
             HttpClientContextBuilder httpClientBuilder = new();
+            return httpClientBuilder.Build();
+        }
+
+        /// <summary>Validates a builder before creating an owned context.</summary>
+        private static HttpClientContext BuildContext(IHttpClientContextBuilder httpClientBuilder)
+        {
+            ArgumentNullException.ThrowIfNull(httpClientBuilder);
             return httpClientBuilder.Build();
         }
 

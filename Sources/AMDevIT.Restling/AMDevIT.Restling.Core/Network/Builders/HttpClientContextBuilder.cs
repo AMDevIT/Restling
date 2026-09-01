@@ -21,7 +21,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         private HttpMessageHandler? httpMessageHandler;
         private CookieContainer? cookieContainer;
-        private bool disposeHandler = false;
+        private HttpMessageHandlerOwnership handlerOwnership = HttpMessageHandlerOwnership.Borrowed;
         private string userAgent = DefaultUserAgent;
 
         private readonly HashSet<HttpCookieData> cookies = [];
@@ -120,8 +120,24 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         public HttpClientContextBuilder AddHandler(HttpMessageHandler handler, bool diposeHandler = false)
         {
+            return this.AddHandler(handler,
+                                   diposeHandler
+                                       ? HttpMessageHandlerOwnership.Owned
+                                       : HttpMessageHandlerOwnership.Borrowed);
+        }
+
+        /// <summary>Adds a handler with an explicit ownership contract.</summary>
+        /// <param name="handler">The message handler used by the generated HTTP client.</param>
+        /// <param name="ownership">Whether the generated context borrows or owns the handler.</param>
+        /// <returns>The current builder instance.</returns>
+        public HttpClientContextBuilder AddHandler(HttpMessageHandler handler, HttpMessageHandlerOwnership ownership)
+        {
+            ArgumentNullException.ThrowIfNull(handler);
+            if (!Enum.IsDefined(ownership))
+                throw new ArgumentOutOfRangeException(nameof(ownership));
+
             this.httpMessageHandler = handler;
-            this.disposeHandler = diposeHandler;
+            this.handlerOwnership = ownership;
 
             return this;
         }
@@ -133,7 +149,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
             if (this.httpMessageHandler == null)
             {
                 this.httpMessageHandler = new SocketsHttpHandler();
-                this.disposeHandler = true;
+                this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
             }
 
             configureHandler(this.httpMessageHandler);
@@ -219,6 +235,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
         {
             HttpClient httpClient;
             HttpClientContext httpClientContext;
+            HttpClientContextOwnership ownership;
 
             this.cookieContainer ??= new CookieContainer();
 
@@ -231,7 +248,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
                     AllowAutoRedirect = false
                 };
                 this.httpMessageHandler = socketsHttpHandler;
-                this.disposeHandler = true;
+                this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
             }
 
             if (this.cookies.Count > 0)
@@ -243,7 +260,10 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 }
             }           
 
-            httpClient = new(this.httpMessageHandler, this.disposeHandler);
+            httpClient = new(this.httpMessageHandler, disposeHandler: false);
+            ownership = HttpClientContextOwnership.HttpClient;
+            if (this.handlerOwnership == HttpMessageHandlerOwnership.Owned)
+                ownership |= HttpClientContextOwnership.HttpMessageHandler;
 
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(this.userAgent);
 
@@ -262,7 +282,10 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 httpClient.DefaultRequestHeaders.Authorization = authenticationHeaderValue;
             }
 
-            httpClientContext = new(httpClient, this.httpMessageHandler, this.cookieContainer)
+            httpClientContext = new(httpClient,
+                                    this.httpMessageHandler,
+                                    this.cookieContainer,
+                                    ownership)
             {
                 Codecs = this.codecs
             };

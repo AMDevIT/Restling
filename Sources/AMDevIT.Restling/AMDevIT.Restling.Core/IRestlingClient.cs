@@ -22,8 +22,22 @@ namespace AMDevIT.Restling.Core
             set;
         }
 
+        /// <summary>Gets or sets whether this client owns and disposes its context.</summary>
+        RestlingClientContextOwnership ContextOwnership
+        {
+            get => this.DisposeContext
+                ? RestlingClientContextOwnership.Owned
+                : RestlingClientContextOwnership.Borrowed;
+            set
+            {
+                if (!Enum.IsDefined(value))
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                this.DisposeContext = value == RestlingClientContextOwnership.Owned;
+            }
+        }
+
         /// <summary>
-        /// Dispose the HttpClient instance and all the handlers when disposing the RestlingClient instance.
+        /// Compatibility alias for ContextOwnership.
         /// </summary>
         bool DisposeContext
         {

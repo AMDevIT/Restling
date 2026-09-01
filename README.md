@@ -133,6 +133,35 @@ builder.ConfigureHandler(handler =>
 RestlingClient client = new(builder);
 ```
 
+## Ownership and disposal
+
+A client created with its default constructor or with `HttpClientContextBuilder` owns the generated context and disposes it:
+
+```csharp
+using RestlingClient client = new();
+```
+
+A client constructed with an existing context borrows it by default. Disposing the client leaves the context, its `HttpClient`, and its handler available for reuse:
+
+```csharp
+HttpClientContext sharedContext = builder.Build();
+
+using (RestlingClient client = new(sharedContext))
+{
+    await client.GetAsync("https://api.example.com/status");
+}
+
+// sharedContext is still owned by the caller.
+```
+
+Ownership can be selected explicitly:
+
+```csharp
+RestlingClient client = new(sharedContext, RestlingClientContextOwnership.Owned);
+```
+
+`DisposeContext` remains available as a compatibility alias. At the context level, `HttpClientContextOwnership` independently controls disposal of `HttpClient` and `HttpMessageHandler`. A builder-created context always owns its `HttpClient`; handler ownership can be selected with `HttpMessageHandlerOwnership.Borrowed` or `Owned`. The old boolean `AddHandler` overload remains supported.
+
 ## More request types
 
 ### Raw content

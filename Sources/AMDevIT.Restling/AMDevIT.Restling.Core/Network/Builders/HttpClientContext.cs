@@ -4,16 +4,14 @@ namespace AMDevIT.Restling.Core.Network.Builders
 {
     using AMDevIT.Restling.Core.Codecs;
 
-    public class HttpClientContext(HttpClient httpClient,
-                                   HttpMessageHandler httpMessageHandler,
-                                   CookieContainer cookieContainer)
-        : IDisposable
+    public class HttpClientContext : IDisposable
     {
         #region Fields
 
-        private readonly HttpClient httpClient = httpClient;
-        private readonly HttpMessageHandler httpMessageHandler = httpMessageHandler;
-        private readonly CookieContainer cookieContainer = cookieContainer;
+        private readonly HttpClient httpClient;
+        private readonly HttpMessageHandler httpMessageHandler;
+        private readonly CookieContainer cookieContainer;
+        private readonly HttpClientContextOwnership ownership;
         private bool disposedValue;
 
         #endregion
@@ -25,50 +23,84 @@ namespace AMDevIT.Restling.Core.Network.Builders
         /// <summary>Gets the codec snapshot shared by clients using this context.</summary>
         public ContentCodecRegistry Codecs { get; init; } = new();
 
-        #endregion
-
-        #region Properties
-
         public HttpClient HttpClient => this.httpClient;
         public HttpMessageHandler HttpMessageHandler => this.httpMessageHandler;
         public CookieContainer CookieContainer => this.cookieContainer;
+        public HttpClientContextOwnership Ownership => this.ownership;
+
+        #endregion
+
+        #region .ctor
+
+        /// <summary>Creates a context that preserves the historical ownership of both resources.</summary>
+        public HttpClientContext(HttpClient httpClient,
+                                 HttpMessageHandler httpMessageHandler,
+                                 CookieContainer cookieContainer)
+            : this(httpClient, httpMessageHandler, cookieContainer, HttpClientContextOwnership.All)
+        {
+        }
+
+        /// <summary>Creates a context with explicit resource ownership.</summary>
+        public HttpClientContext(HttpClient httpClient,
+                                 HttpMessageHandler httpMessageHandler,
+                                 CookieContainer cookieContainer,
+                                 HttpClientContextOwnership ownership)
+        {
+            ArgumentNullException.ThrowIfNull(httpClient);
+            ArgumentNullException.ThrowIfNull(httpMessageHandler);
+            ArgumentNullException.ThrowIfNull(cookieContainer);
+            if ((ownership & ~HttpClientContextOwnership.All) != 0)
+                throw new ArgumentOutOfRangeException(nameof(ownership));
+
+            this.httpClient = httpClient;
+            this.httpMessageHandler = httpMessageHandler;
+            this.cookieContainer = cookieContainer;
+            this.ownership = ownership;
+        }
 
         #endregion
 
         #region Methods
 
+        /// <summary>Disposes only the resources declared by Ownership.</summary>
+        public void Dispose()
+        {
+            this.Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>Releases resources owned by the context.</summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!this.disposedValue)
             {
                 if (disposing)
                 {
-                    try
+                    if (this.Ownership.HasFlag(HttpClientContextOwnership.HttpClient))
                     {
-                        this.HttpMessageHandler.Dispose();                        
+                        try
+                        {
+                            this.HttpClient.Dispose();
+                        }
+                        catch (Exception)
+                        {
+                        }
                     }
-                    catch(Exception)
-                    {
 
-                    }
-
-                    try
+                    if (this.Ownership.HasFlag(HttpClientContextOwnership.HttpMessageHandler))
                     {
-                        this.HttpClient.Dispose();
-                    }
-                    catch (Exception)
-                    {
+                        try
+                        {
+                            this.HttpMessageHandler.Dispose();
+                        }
+                        catch (Exception)
+                        {
+                        }
                     }
                 }
 
-                disposedValue = true;
+                this.disposedValue = true;
             }
-        }
-
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
 
         #endregion

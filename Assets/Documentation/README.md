@@ -17,6 +17,10 @@ The goal of Restling is to provide a flexible yet easy-to-use REST client API. W
 
 Restling decodes responses by media type. Add custom codecs through `HttpClientContextBuilder.AddCodec`. Existing typed request payloads remain JSON unless `RestRequest<T>.UseContentCodec` is enabled explicitly. RFC 9457 Problem Details is available through `ProblemDetailsJsonCodec`, while CSV is supplied by the optional `Restling.Csv` package.
 
+## Ownership and disposal
+
+Clients created with the default constructor or a builder own their generated context. Clients receiving an existing `HttpClientContext` borrow it by default. Use `RestlingClientContextOwnership` to select the behavior explicitly and `HttpClientContextOwnership` to control disposal of the underlying `HttpClient` and handler. `DisposeContext` remains a compatibility alias.
+
 ## Why the name "Restling"?
 
 While chatting with a friend, the name came to mind as a pun combining "REST" and "Changeling," the Fae beings from Northern folk tales. Restling is a library that has taken on the form of a REST client—though its journey started as something entirely different.
