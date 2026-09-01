@@ -1,5 +1,6 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
+using AMDevIT.Restling.Core.Codecs;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -14,6 +15,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
         #endregion
 
         #region Methods
+
+        /// <summary>Adds a codec when supported by the builder. Existing custom builders need not implement this member.</summary>
+        HttpClientContextBuilder AddCodec(IContentCodec codec)
+        {
+            throw new NotSupportedException("This builder does not support codec registration. Configure HttpClientContext.Codecs instead.");
+        }
 
         #region Cookies
 

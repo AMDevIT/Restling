@@ -1,23 +1,16 @@
 ﻿using AMDevIT.Restling.Core.Common;
 using AMDevIT.Restling.Core.Network;
+using AMDevIT.Restling.Core.Codecs;
 using AMDevIT.Restling.Core.Serialization;
 using AMDevIT.Restling.Core.Text;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Xml;
-using System.Xml.Serialization;
 
 namespace AMDevIT.Restling.Core
 {
     internal class HttpResponseParser(ILogger? logger)
     {
-        #region Consts
-
-
-
-        #endregion
-
         #region Fields
 
         private readonly ILogger? logger = logger;
@@ -27,6 +20,8 @@ namespace AMDevIT.Restling.Core
         #region Properties  
 
         protected ILogger? Logger => this.logger;
+
+        public ContentCodecRegistry Codecs { get; init; } = new();
 
         public bool AllowUnsafeXml { get; set; } = false;
 
@@ -73,6 +68,7 @@ namespace AMDevIT.Restling.Core
                 this.Logger?.LogError(httpClientException, "Http response object is null");
             }
 
+            this.AttachProblem(restRequestResult);
             return restRequestResult;
         }
 
@@ -153,6 +149,7 @@ namespace AMDevIT.Restling.Core
                 this.Logger?.LogError(httpClientException, "Http response object is null");
             }
 
+            this.AttachProblem(restRequestResult);
             return restRequestResult;
         }
 
@@ -177,65 +174,52 @@ namespace AMDevIT.Restling.Core
         }
 
 
-        private T? DecodeData<T>(byte[] rawContent, 
-                                 RetrievedContentResult content, 
+        /// <summary>Decodes a model using the registry while retaining legacy JSON error handling.</summary>
+        private T? DecodeData<T>(byte[] rawContent,
+                                 RetrievedContentResult content,
                                  MediaTypeHeaderValue? contentType,
                                  PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
         {
-            T? data = default;
-
-            // Try decoding data.
-            switch (contentType?.MediaType)
+            IContentCodec? codec = this.Codecs.FindReader(contentType?.MediaType);
+            ContentCodecContext context = new()
             {
-                case HttpMediaType.ApplicationJson:
-                    try
-                    {
-                        if (content.Content is string json)
-                        {
-                            JsonSerialization jsonSerialization = new(this.Logger);
-                            data = jsonSerialization.Deserialize<T>(json, payloadJsonSerializerLibrary);
-                        }
-                    }
-                    catch (Exception exc)
-                    {
-                        this.Logger?.LogError(exc, "Failed to deserialize JSON content.");
-                    }
-                    break;
+                Logger = this.Logger,
+                JsonSerializerLibrary = payloadJsonSerializerLibrary,
+                AllowUnsafeXml = this.AllowUnsafeXml
+            };
+            if (codec is IProblemDetailsCodec && typeof(T) != typeof(RestProblemDetails))
+                return default;
+            if (codec == null)
+                return this.RetrievePrimitiveType<T>(rawContent, content, contentType);
 
-                case HttpMediaType.ApplicationAtomXml:
-                case HttpMediaType.ApplicationXml:
-                case HttpMediaType.TextXml:
-                    try
-                    {
-                        if (content.Content is string xml)
-                        {
-                            if (!this.AllowUnsafeXml)
-                            {
-                                data = this.DecodeXmlSecure<T>(xml);
-                            }
-                            else
-                            {
-                                XmlSerializer serializer = new(typeof(T));
-                                using var stringReader = new StringReader(xml);
-                                data = (T?)serializer.Deserialize(stringReader);
-                            }
-                        }
-                    }
-                    catch (Exception exc)
-                    {
-                        this.Logger?.LogError(exc, "Failed to deserialize XML content.");
-                        throw;
-                    }
-                    break;
-
-                default:
-                    // If it's a string or other primitive, try to parse it.
-                    data = this.RetrievePrimitiveType<T>(rawContent, content, contentType);
-                    break;
-
+            try
+            {
+                return codec.Deserialize<T>(rawContent, contentType, context);
             }
+            catch (Exception exception) when (codec is JsonContentCodec)
+            {
+                // Retain the legacy JSON default-on-error behavior.
+                this.Logger?.LogError(exception, "Failed to deserialize JSON content.");
+                return default;
+            }
+        }
 
-            return data;
+        /// <summary>Attaches optional problem metadata without replacing the HTTP result.</summary>
+        private void AttachProblem(RestRequestResult result)
+        {
+            IContentCodec? codec = this.Codecs.FindReader(result.ContentType);
+            if (codec is not IProblemDetailsCodec problemCodec || result.RawContent == null)
+                return;
+
+            try
+            {
+                ContentCodecContext context = new() { Logger = this.Logger };
+                result.Problem = problemCodec.DeserializeProblem(result.RawContent, result.RetrievedContent?.ContentType, context);
+            }
+            catch (Exception exception)
+            {
+                result.ProblemException = exception;
+            }
         }
 
 
@@ -259,68 +243,16 @@ namespace AMDevIT.Restling.Core
             return default;
         }
 
-        private static RetrievedContentResult RetrieveContent(byte[] rawContent,
-                                                                      MediaTypeHeaderValue? contentType)
+        /// <summary>Classifies the original body through the selected codec, preserving the missing-header fallback.</summary>
+        private RetrievedContentResult RetrieveContent(byte[] rawContent, MediaTypeHeaderValue? contentType)
         {
-            object? content;
-            bool isBinaryData = false;
-            RetrievedContentResult contentResult;
-
             if (contentType == null)
-            {
-                content = rawContent;
-            }
-            else
-            {
-                Charset charset = CharsetParser.Parse(contentType.CharSet);
-                switch (contentType.MediaType)
-                {
-                    case HttpMediaType.ApplicationJson:
-                    case HttpMediaType.ApplicationXml:
-                    case HttpMediaType.TextXml:
-                    case HttpMediaType.TextPlain:
-                    case HttpMediaType.TextHtml:
-                    case HttpMediaType.TextCss:
-                    case HttpMediaType.TextJavascript:
-                    case HttpMediaType.ImageSvgXml:
-                    case HttpMediaType.ApplicationAtomXml:
-                        {
-                            string stringContent = DecodeContentString(rawContent, charset);
-                            content = stringContent;
-                            isBinaryData = false;
-                        }
-                        break;
+                return new RetrievedContentResult(rawContent, false, null);
 
-                    case HttpMediaType.ImagePng:
-                    case HttpMediaType.ImageJpeg:
-                    case HttpMediaType.ImageGif:
-                    case HttpMediaType.ImageBmp:
-                    case HttpMediaType.ImageWebp:
-                    case HttpMediaType.ApplicationOctetStream:
-                    case HttpMediaType.VideoMp4:
-                    case HttpMediaType.VideoMpeg:
-                    case HttpMediaType.VideoOgg:
-                    case HttpMediaType.VideoWebm:
-                    case HttpMediaType.VideoQuicktime:
-                        {
-                            content = rawContent;
-                            isBinaryData = true;
-                        }
-                        break;
-
-                    default:
-                        {
-                            // This is a fallback, if the content type is not recognized.
-                            // The content is returned as a byte array.
-                            content = rawContent;
-                            isBinaryData = true;
-                        }
-                        break;
-                }
-            }
-
-            contentResult = new(content, isBinaryData, contentType);
-            return contentResult;
+            IContentCodec? codec = this.Codecs.FindReader(contentType.MediaType);
+            bool isBinary = codec?.IsBinary ?? true;
+            object content = isBinary ? rawContent : DecodeContentString(rawContent, CharsetParser.Parse(contentType.CharSet));
+            return new RetrievedContentResult(content, isBinary, contentType);
         }
 
         private static string DecodeContentString(byte[] rawContent, Charset charset)
@@ -338,18 +270,6 @@ namespace AMDevIT.Restling.Core
             return result;
         }
 
-        private T? DecodeXmlSecure<T>(string xml)
-        {
-            XmlSerializer serializer = new(typeof(T));
-            XmlReaderSettings settings = new()
-            {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null
-            };
-
-            using var reader = XmlReader.Create(new StringReader(xml), settings);
-            return (T?)serializer.Deserialize(reader);
-        }
 
         #endregion
     }

@@ -2,6 +2,8 @@
 
 namespace AMDevIT.Restling.Core.Network.Builders
 {
+    using AMDevIT.Restling.Core.Codecs;
+
     public class HttpClientContext(HttpClient httpClient,
                                    HttpMessageHandler httpMessageHandler,
                                    CookieContainer cookieContainer)
@@ -19,6 +21,9 @@ namespace AMDevIT.Restling.Core.Network.Builders
         #region Properties
 
         public bool Disposed => this.disposedValue;
+
+        /// <summary>Gets the codec snapshot shared by clients using this context.</summary>
+        public ContentCodecRegistry Codecs { get; init; } = new();
 
         #endregion
 

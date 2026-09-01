@@ -180,6 +180,32 @@ RestRequestResult<TodoItem> result = await client.GetAsync<TodoItem>("https://ap
                                                                      cancellationToken: cancellationToken);
 ```
 
+## Extensible content codecs
+
+Restling selects response decoders by media type. Every client context includes JSON (including `application/*+json`), XML (including `application/*+xml`), text, and binary/raw codecs by default, so existing requests require no configuration. Problem media types remain opt-in. Custom codecs have priority when added through `HttpClientContextBuilder`:
+
+```csharp
+using AMDevIT.Restling.Core.Codecs;
+using AMDevIT.Restling.Core.Network.Builders;
+
+HttpClientContextBuilder builder = new();
+builder.AddCodec(new MyContentCodec());
+```
+
+Request models remain JSON by default for backward compatibility. To serialize a model with another registered codec, set its media type and `UseContentCodec`:
+
+```csharp
+RestRequest<ImportModel> request = new("https://api.example.com/import",
+                                       AMDevIT.Restling.Core.HttpMethod.Post,
+                                       model)
+{
+    ContentMediaType = HttpMediaType.ApplicationXml,
+    UseContentCodec = true
+};
+```
+
+CSV is supplied by the optional `Restling.Csv` project and is registered with `builder.AddCodec(new CsvContentCodec())`. RFC 9457 Problem Details is enabled with `builder.AddCodec(new ProblemDetailsJsonCodec())`; structured errors appear in `RestRequestResult.Problem`, while malformed problem documents appear in `ProblemException` without losing the HTTP response.
+
 ## Cookies
 
 Inject individual cookies or a complete `CookieContainer` through the builder:

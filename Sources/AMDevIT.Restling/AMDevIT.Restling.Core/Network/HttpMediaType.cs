@@ -22,6 +22,7 @@
         #region Text Media Types
 
         public const string TextPlain = "text/plain";
+        public const string TextCsv = "text/csv";
         public const string TextHtml = "text/html";
         public const string TextCss = "text/css";
         public const string TextXml = "text/xml";

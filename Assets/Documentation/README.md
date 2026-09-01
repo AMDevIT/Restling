@@ -11,6 +11,11 @@ The goal of Restling is to provide a flexible yet easy-to-use REST client API. W
 - Designed for dependency injection (transient service).  
 - Full support for .NET's `SocketsHttpHandler`.  
 - Highly customizable via `HttpClientContextBuilder`.  
+- Extensible content codecs with JSON, XML, text, and binary/raw defaults.
+
+## Content codecs
+
+Restling decodes responses by media type. Add custom codecs through `HttpClientContextBuilder.AddCodec`. Existing typed request payloads remain JSON unless `RestRequest<T>.UseContentCodec` is enabled explicitly. RFC 9457 Problem Details is available through `ProblemDetailsJsonCodec`, while CSV is supplied by the optional `Restling.Csv` package.
 
 ## Why the name "Restling"?
 
@@ -32,7 +37,7 @@ You can use Visual Studio solution package management or use the following comma
 From a valid terminal:
 
 ```
-dotnet add package AMDevIT.Restling.Core
+dotnet add package Restling
 ```
 
 ### NuGet Package Manager
@@ -40,7 +45,7 @@ dotnet add package AMDevIT.Restling.Core
 Using Visual Studio powershell package manager:
 
 ```
-Install-Package AMDevIT.Restling.Core
+Install-Package Restling
 ```
 
 ## Basic usage:

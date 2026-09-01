@@ -1,5 +1,7 @@
 ﻿using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Core.Network.Builders;
+using AMDevIT.Restling.Core.Codecs;
+using System.Net.Http.Headers;
 using AMDevIT.Restling.Core.Serialization;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -127,7 +129,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
 
             restRequest = new RestRequest(uri,
                                           HttpMethod.Get,
@@ -227,7 +229,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult<T> restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
 
             restRequest = new RestRequest(uri,
                                           HttpMethod.Get,
@@ -306,7 +308,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
 
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Post,
@@ -376,7 +378,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult<D> restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
 
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Post,
@@ -484,7 +486,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
 
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Put,
@@ -545,7 +547,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult<D> restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
 
             restRequest = new RestRequest<T>(uri,
                                              HttpMethod.Put,
@@ -651,7 +653,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
 
             restRequest = new RestRequest(uri,
                                           HttpMethod.Delete,
@@ -704,7 +706,7 @@ namespace AMDevIT.Restling.Core
             RestRequestResult<T> restRequestResult;
             TimeSpan elapsed;
             Stopwatch stopwatch = new();
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
             restRequest = new RestRequest(uri,
                                           HttpMethod.Delete,
                                           null);
@@ -939,7 +941,7 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult> ExecuteFormUrlEncodedRequest(FormUrlEncodedRequest formUrlEncodedRequest, 
                                                                           CancellationToken cancellationToken = default)
         {
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
             RestRequestResult restRequestResult;
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
@@ -999,7 +1001,7 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult<T>> ExecuteFormUrlEncodedRequest<T>(FormUrlEncodedRequest formUrlEncodedRequest,
                                                                                 CancellationToken cancellationToken = default)
         {
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
             RestRequestResult<T> restRequestResult;
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
@@ -1061,7 +1063,7 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult> ExecuteRawRequestAsync(RestRawRequest restRawRequest,
                                                                     CancellationToken cancellationToken = default)
         {
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
             RestRequestResult restRequestResult;
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
@@ -1123,7 +1125,7 @@ namespace AMDevIT.Restling.Core
         public async Task<RestRequestResult<T>> ExecuteRawRequestAsync<T>(RestRawRequest restRawRequest,
                                                                           CancellationToken cancellationToken = default)
         {
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
             RestRequestResult<T> restRequestResult;
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
@@ -1194,7 +1196,7 @@ namespace AMDevIT.Restling.Core
                                                                             bool throwOnGenerics = false,
                                                                             CancellationToken cancellationToken = default)
         {
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
             RestRequestResult restRequestResult;
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
@@ -1260,7 +1262,7 @@ namespace AMDevIT.Restling.Core
                                                                                   bool throwOnGenerics = false,
                                                                                   CancellationToken cancellationToken = default)
         {
-            HttpResponseParser httpResponseParser = new(this.Logger);
+            HttpResponseParser httpResponseParser = new(this.Logger) { Codecs = this.Context.Codecs };
             RestRequestResult<T> restRequestResult;
             HttpResponseMessage? resultHttpMessage = null;
             Stopwatch stopwatch = new();
@@ -1368,41 +1370,35 @@ namespace AMDevIT.Restling.Core
             return httpContent;
         }
 
-        protected HttpContent BuildJsonHttpContent<T>(T requestData, 
+        /// <summary>Builds JSON content while preserving legacy media-type labels and null payloads.</summary>
+        protected HttpContent BuildJsonHttpContent<T>(T requestData,
                                                       string? requestContentMediaType = null,
                                                       PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary = null)
         {
-            HttpContent content;
-
-            if (this.EnableVerboseLogging)
-                this.Logger?.LogTrace("Build http request content.");
-
             if (requestData == null)
+                return new StringContent(string.Empty);
+
+            MediaTypeHeaderValue contentType = MediaTypeHeaderValue.Parse(string.IsNullOrWhiteSpace(requestContentMediaType)
+                ? HttpMediaType.ApplicationJson
+                : requestContentMediaType);
+            IContentCodec codec = this.Context.Codecs.FindWriter(HttpMediaType.ApplicationJson)
+                ?? throw new NotSupportedException("No JSON writer is registered.");
+            ContentCodecContext context = new() { Logger = this.Logger, JsonSerializerLibrary = payloadJsonSerializerLibrary };
+            return codec.Serialize(requestData, contentType, context);
+        }
+
+        /// <summary>Builds a payload with the codec explicitly selected by its media type.</summary>
+        protected HttpContent BuildCodecHttpContent<T>(RestRequest<T> request)
+        {
+            MediaTypeHeaderValue contentType = MediaTypeHeaderValue.Parse(request.ContentMediaType ?? HttpMediaType.ApplicationJson);
+            IContentCodec codec = this.Context.Codecs.FindWriter(contentType.MediaType)
+                ?? throw new NotSupportedException($"No writer is registered for {contentType.MediaType}.");
+            ContentCodecContext context = new()
             {
-                if (this.EnableVerboseLogging)
-                    this.Logger?.LogTrace("Request data is null. An empty string content will be added to the request.");
-
-                content = new StringContent(string.Empty);
-            }
-            else
-            {
-                JsonSerialization jsonSerialization = new(this.Logger);
-                string jsonContent = jsonSerialization.Serialize(requestData, payloadJsonSerializerLibrary);
-                string? mediaType = requestContentMediaType;
-
-                if (string.IsNullOrWhiteSpace(mediaType))
-                    mediaType = HttpMediaType.ApplicationJson;
-
-                if (this.EnableVerboseLogging)
-                {
-                    this.Logger?.LogTrace("A content of type {mediaType} will be added to the request containing the serialization of the request data.", mediaType);
-                    this.Logger?.LogTrace("Serialized request data: {serializedData}", jsonContent);
-                }
-
-                content = new StringContent(jsonContent, Encoding.UTF8, mediaType);
-            }
-
-            return content;
+                Logger = this.Logger,
+                JsonSerializerLibrary = request.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary
+            };
+            return codec.Serialize(request.RequestData, contentType, context);
         }
 
         protected HttpRequestMessage BuildHttpRequestMessage(RestRequest restRequest)
@@ -1458,7 +1454,11 @@ namespace AMDevIT.Restling.Core
 
             httpRequest = this.BuildHttpRequestMessage(restRequest);
 
-            if (restRequest.RequestData != null)
+            if (restRequest.UseContentCodec)
+            {
+                httpRequest.Content = this.BuildCodecHttpContent(restRequest);
+            }
+            else if (restRequest.RequestData != null)
             {
                 httpRequest.Content = this.BuildJsonHttpContent<T>(restRequest.RequestData, 
                                                                requestContentMediaType: restRequest.ContentMediaType,

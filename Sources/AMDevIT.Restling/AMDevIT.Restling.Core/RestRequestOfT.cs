@@ -19,6 +19,10 @@ namespace AMDevIT.Restling.Core
 
         #region Properties
 
+        /// <summary>Uses the registered writer for ContentMediaType instead of legacy JSON serialization.</summary>
+        /// <remarks>False by default so existing requests that relabel JSON preserve their behavior.</remarks>
+        public bool UseContentCodec { get; set; }
+
         public T? RequestData
         {
             get => this.requestData;

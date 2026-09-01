@@ -1,5 +1,6 @@
 ﻿using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Core.Text;
+using AMDevIT.Restling.Core.Codecs;
 using System.Net;
 using System.Security.AccessControl;
 
@@ -42,6 +43,12 @@ namespace AMDevIT.Restling.Core
         public string? ContentType => this.contentType;
         public Charset CharSet => this.charSet;
         public Exception? Exception => this.exception;
+
+        /// <summary>Structured problem information when an optional problem codec is registered.</summary>
+        public RestProblemDetails? Problem { get; internal set; }
+
+        /// <summary>A problem-document decoding failure, without replacing the HTTP status or original body.</summary>
+        public Exception? ProblemException { get; internal set; }
 
         public ResponseHeaders ResponseHeaders => this.responseHeaders;
 

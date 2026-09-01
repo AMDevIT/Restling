@@ -1,5 +1,6 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
+using AMDevIT.Restling.Core.Codecs;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -27,6 +28,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
         private readonly Dictionary<string, string> defaultHeaders = [];
         private AuthenticationHeader? authenticationHeader = null;
         private TimeSpan? timeout = null;
+        private ContentCodecRegistry codecs = new();
 
         #endregion
 
@@ -37,6 +39,13 @@ namespace AMDevIT.Restling.Core.Network.Builders
         #endregion
 
         #region Methods
+
+        /// <summary>Adds a codec with priority over previously registered codecs, retaining the defaults.</summary>
+        public HttpClientContextBuilder AddCodec(IContentCodec codec)
+        {
+            this.codecs = this.codecs.WithCodec(codec);
+            return this;
+        }
 
         #region Cookies
 
@@ -253,7 +262,10 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 httpClient.DefaultRequestHeaders.Authorization = authenticationHeaderValue;
             }
 
-            httpClientContext = new(httpClient, this.httpMessageHandler, this.cookieContainer);
+            httpClientContext = new(httpClient, this.httpMessageHandler, this.cookieContainer)
+            {
+                Codecs = this.codecs
+            };
 
             return httpClientContext;
         }
