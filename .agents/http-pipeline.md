@@ -24,7 +24,7 @@ Centralize transport execution while preserving the existing public API and obse
 - Direct convenience methods retain HttpClient default request version/version policy; explicitly built request paths are unchanged.
 - Buffered send errors and cancellation remain unsuccessful results; streaming failures continue to throw.
 - Existing JSON default-on-decode-error and status-dependent XML errors are retained.
-- Historical anomaly deliberately preserved: untyped POST/PUT overloads with request headers dispatch to bodyless execution and return a typed result through the base result type. Correcting that behavior requires a separate approved behavioral change.
+- Historical anomaly initially preserved, then fixed with separate user approval: untyped POST/PUT overloads with headers now build the payload and return an actual untyped result. See `post-put-cookies.md` for updated tests and cookie findings.
 
 ## Files and tests
 
@@ -37,7 +37,7 @@ Centralize transport execution while preserving the existing public API and obse
 - `AMDevIT.Restling.Tests/Pipeline/TrackingResponseContent.cs`
 - Corrected the existing multipart test HttpMethod alias to `AMDevIT.Restling.Core.HttpMethod`.
 
-The two new suites contain 17 test methods / 49 data-expanded cases. They use in-memory message handlers, not httpbin. Coverage includes methods/URI/headers, payload and response shape, serializer precedence, null payloads, serialization failures, raw/form dispatch, pre-cancelled and in-flight cancellation, HTTP errors, decode errors, response disposal, HttpClient version defaults, and streaming early exit/failure.
+The initial pipeline suites contained 17 test methods / 49 cases. The approved POST/PUT correction replaces the two legacy-bug cases with four corrected-body cases and adds six null/error/cancellation cases: 57 pipeline cases now pass. They use in-memory message handlers, not httpbin. Coverage includes methods/URI/headers, payload and response shape, serializer precedence, null payloads, serialization failures, raw/form dispatch, pre-cancelled and in-flight cancellation, HTTP errors, decode errors, response disposal, HttpClient version defaults, and streaming early exit/failure.
 
 ## Verification and next step
 
@@ -45,4 +45,4 @@ The two new suites contain 17 test methods / 49 data-expanded cases. They use in
 - Compared the refactor with the pre-refactor RestlingClient implementation and corrected identified compatibility differences.
 - Static checks: `git diff --check`, request-send call-site search, and new-code formatting review. Textual comparison found zero public/protected declaration differences; new source files contain no trailing-whitespace violations.
 - After user authorization on 2026-09-02, restore and multi-target solution build passed with no warnings/errors. All 49 pipeline cases passed, along with codec, ownership, multipart, and XML security tests (74 total; 0 failed/skipped).
-- Coverage measurement and a baseline-versus-refactor runtime comparison have not been performed. Keep httpbin integration tests separate. Consider the untyped-header payload anomaly as a separate follow-up.
+- Coverage measurement and a full baseline-versus-refactor runtime comparison have not been performed. Keep httpbin integration tests separate. Both the approved untyped-header fix and cookie-builder correction are complete; see `cookie-builder.md` for the latest 118 passing cases.

@@ -317,8 +317,7 @@ namespace AMDevIT.Restling.Core
             if (forcePayloadJsonSerializerLibrary != null)
                 restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
 
-            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest,                 
-                                                                  cancellationToken: cancellationToken);
+            restRequestResult = await this.ExecuteHeaderPayloadRequestAsync(restRequest, cancellationToken);
             return restRequestResult;
         }
 
@@ -407,7 +406,7 @@ namespace AMDevIT.Restling.Core
             if (forcePayloadJsonSerializerLibrary != null)
                 restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
 
-            restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
+            restRequestResult = await this.ExecuteHeaderPayloadRequestAsync(restRequest, cancellationToken);
             return restRequestResult;
         }
 
@@ -1032,6 +1031,14 @@ namespace AMDevIT.Restling.Core
         {
             HttpClientContextBuilder httpClientBuilder = new();
             return httpClientBuilder.Build();
+        }
+
+        /// <summary>Sends a payload with per-request headers and returns an untyped response.</summary>
+        private async Task<RestRequestResult> ExecuteHeaderPayloadRequestAsync<T>(RestRequest<T> restRequest,
+                                                                                 CancellationToken cancellationToken)
+        {
+            using HttpRequestMessage httpRequest = this.BuildHttpRequestMessageWithPayload(restRequest);
+            return await this.ExecuteRequestInternalAsync(restRequest, httpRequest, cancellationToken: cancellationToken);
         }
 
         /// <summary>Preserves the direct overload's payload and preparation-error contract.</summary>

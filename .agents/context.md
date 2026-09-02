@@ -2,7 +2,7 @@
 ## Objective and status
 
 - Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, and centralized HTTP execution with historical-behavior regression tests.
-- Status: implementations, static review, and authorized local verification are complete. Solution build passed without warnings/errors; 74 offline tests passed on net10.0.
+- Status: POST/PUT payload and cookie-builder corrections are implemented and verified. Latest solution build passed without warnings/errors; all 118 selected local tests passed on net10.0, including all 36 cookie cases.
 
 ## Decisions made
 
@@ -21,7 +21,8 @@
 - `multipart/x-mixed-replace` uses a separate incremental API rather than the buffered response parser.
 - Internal HTTP pipeline centralizes sending, timing, decoding, error results, logging, and response lifetime without taking ownership of shared transport resources.
 - Historical serializer precedence, null-payload handling, direct HttpClient version defaults, and result-versus-exception differences remain explicit at the pipeline boundary.
-- The legacy untyped POST/PUT header overloads' bodyless behavior is documented and tested, not silently corrected in this refactor.
+- After separate user approval, the untyped POST/PUT header overloads now send their payload and return an untyped result through the centralized pipeline. Other serializer/overload contracts remain unchanged.
+- After explicit approval, cookie binding is centralized for directly supplied/configured native handlers. Explicit containers take precedence; otherwise the handler's existing jar and cookie policy are retained. Redirect and ownership settings remain unchanged.
 
 ## Affected files
 
@@ -34,6 +35,8 @@
 - Added internal pipeline/streaming lease, integrated all client send paths, added 49 deterministic pipeline regression cases and test helpers, and documented the step in `.agents/http-pipeline.md`.
 - Corrected the existing multipart tests' HttpMethod namespace alias.
 - Recorded authorized restore/build/test results and remaining verification scope in `.agents/test-verification.md`.
+- Updated POST/PUT regression tests, added loopback cookie tests/helper, and recorded the follow-up in `.agents/post-put-cookies.md`.
+- Corrected HttpClientContextBuilder cookie binding, added 18 CookieBuilderTests cases, and recorded completion in `.agents/cookie-builder.md`.
 
 ## Checks performed
 
@@ -48,9 +51,12 @@
 - Statically compared pipeline behavior against the pre-refactor implementation, verified centralized send call sites, and checked the diff for whitespace errors. These checks do not establish that the new tests pass.
 - Authorized verification: restore passed; solution build passed for Core/CSV net8.0, net9.0, net10.0 and tests net10.0 with 0 warnings/errors.
 - Runtime verification: 49 pipeline, 6 codec, 7 ownership, 6 multipart, and 6 XML security cases passed (74 total; 0 failed/skipped) on net10.0. TRX reports are under `TestResults/http-pipeline/`.
+- Follow-up verification: reproduced the POST/PUT bug with 4 failing tests before fixing it. Latest run has 57 pipeline + 25 existing codec/ownership/multipart/security cases passing; 10/18 cookie cases pass and 8 expose the builder issue. Reports are under `TestResults/post-put-cookies/`.
+- Cookie-builder completion: the preceding eight cookie failures are resolved. Targeted cookie tests: 36/36 passed; full selected suite: 118/118 passed, 0 failed/skipped. Solution build passed with 0 warnings/errors. Reports are under `TestResults/cookie-builder/`.
 
 ## Open issues and recommended next step
 
-- Local regression tests are green; runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
+- No known failures remain in the selected local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
+- Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
-- Evaluate a separately approved fix for the historical untyped POST/PUT-with-headers payload omission.
+- POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.

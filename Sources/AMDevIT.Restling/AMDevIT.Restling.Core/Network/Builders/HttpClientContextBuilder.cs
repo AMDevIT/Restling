@@ -21,6 +21,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         private HttpMessageHandler? httpMessageHandler;
         private CookieContainer? cookieContainer;
+        private CookieContainer? fallbackCookieContainer;
         private HttpMessageHandlerOwnership handlerOwnership = HttpMessageHandlerOwnership.Borrowed;
         private string userAgent = DefaultUserAgent;
 
@@ -49,25 +50,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         #region Cookies
 
+        /// <summary>Selects an explicit cookie container and enables cookies on a supported native handler.</summary>
         public HttpClientContextBuilder AddCookieContainer(CookieContainer cookieContainer)
         {
+            ArgumentNullException.ThrowIfNull(cookieContainer);
             this.cookieContainer = cookieContainer;
-
-            if (this.httpMessageHandler != null)
-            {
-                switch (this.httpMessageHandler)
-                {
-                    case SocketsHttpHandler socketsHttpHandler:
-                        socketsHttpHandler.CookieContainer = this.cookieContainer;
-                        socketsHttpHandler.UseCookies = true;
-                        break;
-
-                    case HttpClientHandler httpClientHandler:
-                        httpClientHandler.CookieContainer = this.cookieContainer;
-                        httpClientHandler.UseCookies = true;
-                        break;
-                }
-            }
+            this.ResolveCookieContainer(enableCookies: true);
             return this;
         }
 
@@ -138,6 +126,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
             this.httpMessageHandler = handler;
             this.handlerOwnership = ownership;
+            this.ResolveCookieContainer(enableCookies: true);
 
             return this;
         }
@@ -150,6 +139,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
             {
                 this.httpMessageHandler = new SocketsHttpHandler();
                 this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
+                this.ResolveCookieContainer(enableCookies: true);
             }
 
             configureHandler(this.httpMessageHandler);
@@ -236,14 +226,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
             HttpClient httpClient;
             HttpClientContext httpClientContext;
             HttpClientContextOwnership ownership;
-
-            this.cookieContainer ??= new CookieContainer();
+            CookieContainer effectiveCookieContainer;
 
             if (this.httpMessageHandler == null)
             {
                 SocketsHttpHandler socketsHttpHandler = new()
                 {
-                    CookieContainer = this.cookieContainer,
                     UseCookies = true,
                     AllowAutoRedirect = false
                 };
@@ -251,12 +239,14 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
             }
 
+            effectiveCookieContainer = this.ResolveCookieContainer();
+
             if (this.cookies.Count > 0)
             {
                 foreach (HttpCookieData cookieData in this.cookies)
                 {
                     Cookie cookie = new(cookieData.Name, cookieData.Value, cookieData.Path, cookieData.Domain);
-                    this.cookieContainer.Add(cookie);
+                    effectiveCookieContainer.Add(cookie);
                 }
             }           
 
@@ -284,13 +274,44 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
             httpClientContext = new(httpClient,
                                     this.httpMessageHandler,
-                                    this.cookieContainer,
+                                    effectiveCookieContainer,
                                     ownership)
             {
                 Codecs = this.codecs
             };
 
             return httpClientContext;
+        }
+
+        /// <summary>Shares the explicit or native cookie container without replacing existing handler state unnecessarily.</summary>
+        /// <remarks>An explicit container takes precedence. Without one, native cookie settings and stored cookies are retained.</remarks>
+        private CookieContainer ResolveCookieContainer(bool enableCookies = false)
+        {
+            switch (this.httpMessageHandler)
+            {
+                case SocketsHttpHandler socketsHttpHandler:
+                    if (this.cookieContainer != null)
+                    {
+                        if (!ReferenceEquals(socketsHttpHandler.CookieContainer, this.cookieContainer))
+                            socketsHttpHandler.CookieContainer = this.cookieContainer;
+                        if (enableCookies && !socketsHttpHandler.UseCookies)
+                            socketsHttpHandler.UseCookies = true;
+                    }
+                    return socketsHttpHandler.CookieContainer;
+
+                case HttpClientHandler httpClientHandler:
+                    if (this.cookieContainer != null)
+                    {
+                        if (!ReferenceEquals(httpClientHandler.CookieContainer, this.cookieContainer))
+                            httpClientHandler.CookieContainer = this.cookieContainer;
+                        if (enableCookies && !httpClientHandler.UseCookies)
+                            httpClientHandler.UseCookies = true;
+                    }
+                    return httpClientHandler.CookieContainer;
+
+                default:
+                    return this.cookieContainer ?? (this.fallbackCookieContainer ??= new CookieContainer());
+            }
         }
 
 

@@ -253,29 +253,125 @@ namespace AMDevIT.Restling.Tests
                 Assert.AreEqual("{\"system_name\":\"payload\"}", body);
         }
 
-        /// <summary>Characterizes the legacy bodyless, typed-result behavior of untyped payload/header overloads.</summary>
+        /// <summary>Verifies that untyped header overloads send their payload without decoding a response model.</summary>
+        [TestMethod]
+        [DataRow("POST", PayloadJsonSerializerLibrary.SystemTextJson)]
+        [DataRow("POST", PayloadJsonSerializerLibrary.NewtonsoftJson)]
+        [DataRow("PUT", PayloadJsonSerializerLibrary.SystemTextJson)]
+        [DataRow("PUT", PayloadJsonSerializerLibrary.NewtonsoftJson)]
+        public async Task UntypedHeaderPayloadOverloadsSendBody(string method, PayloadJsonSerializerLibrary serializer)
+        {
+            const string uri = "https://example.test/payload";
+            string? body = null;
+            string? contentType = null;
+            string? authorization = null;
+            string? header = null;
+            string? verb = null;
+            Uri? requestUri = null;
+            SerializerSelectionModel payload = new() { Name = "payload" };
+            RequestHeaders headers = new(new AuthenticationHeader("Bearer", "test-token"));
+            headers.Headers.Add("X-Request", "kept");
+            using RecordingMessageHandler handler = new(async (request, token) =>
+            {
+                body = request.Content == null ? null : await request.Content.ReadAsStringAsync(token);
+                contentType = request.Content?.Headers.ContentType?.ToString();
+                authorization = request.Headers.Authorization?.ToString();
+                header = request.Headers.GetValues("X-Request").Single();
+                verb = request.Method.Method;
+                requestUri = request.RequestUri;
+                return new HttpResponseMessage(HttpStatusCode.Created)
+                {
+                    Content = new StringContent("not an XML model", Encoding.UTF8, "application/xml")
+                };
+            });
+            using HttpClientContext context = new HttpClientContextBuilder().AddHandler(handler).Build();
+            using RestlingClient client = new(context)
+            {
+                SelectedDefaultSerializationLibrary = serializer == PayloadJsonSerializerLibrary.SystemTextJson
+                    ? PayloadJsonSerializerLibrary.NewtonsoftJson
+                    : PayloadJsonSerializerLibrary.SystemTextJson
+            };
+
+            RestRequestResult result = method == "POST"
+                ? await client.PostAsync(uri, payload, headers, serializer)
+                : await client.PutAsync(uri, payload, headers, serializer);
+
+            Assert.AreEqual(serializer == PayloadJsonSerializerLibrary.SystemTextJson
+                ? "{\"system_name\":\"payload\"}"
+                : "{\"newtonsoft_name\":\"payload\"}", body);
+            Assert.AreEqual("application/json; charset=utf-8", contentType);
+            Assert.AreEqual("Bearer test-token", authorization);
+            Assert.AreEqual("kept", header);
+            Assert.AreEqual(method, verb);
+            Assert.AreEqual(uri, requestUri?.AbsoluteUri);
+            Assert.AreEqual(typeof(RestRequestResult), result.GetType());
+            Assert.AreEqual("not an XML model", result.Content);
+            Assert.AreEqual(HttpStatusCode.Created, result.StatusCode);
+            Assert.IsTrue(result.IsSuccessful);
+            Assert.IsNull(result.Exception);
+            Assert.AreSame(payload, ((RestRequest<SerializerSelectionModel>)result.Request).RequestData);
+            Assert.AreEqual(client.SelectedDefaultSerializationLibrary, result.Request.ForcePayloadJsonSerializerLibrary);
+        }
+
+        /// <summary>Verifies that header overloads accept null payloads without creating a typed result.</summary>
         [TestMethod]
         [DataRow("POST")]
         [DataRow("PUT")]
-        public async Task UntypedHeaderPayloadOverloadsRetainLegacyShape(string method)
+        public async Task UntypedHeaderPayloadOverloadsAcceptNull(string method)
         {
-            bool hasContent = true;
-            CodecTestModel payload = new() { Id = 3 };
+            bool hasBody = true;
             using RecordingMessageHandler handler = new((request, _) =>
             {
-                hasContent = request.Content != null;
-                return Task.FromResult(CreateJsonResponse(HttpStatusCode.OK, "{\"Id\":7}"));
+                hasBody = request.Content != null;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
             });
             using HttpClientContext context = new HttpClientContextBuilder().AddHandler(handler).Build();
             using RestlingClient client = new(context);
 
             RestRequestResult result = method == "POST"
-                ? await client.PostAsync("https://example.test/legacy", payload, new RequestHeaders())
-                : await client.PutAsync("https://example.test/legacy", payload, new RequestHeaders());
+                ? await client.PostAsync<string?>("https://example.test/null", null, new RequestHeaders())
+                : await client.PutAsync<string?>("https://example.test/null", null, new RequestHeaders());
 
-            Assert.IsFalse(hasContent);
-            Assert.IsInstanceOfType<RestRequestResult<CodecTestModel>>(result);
-            Assert.AreEqual(7, ((RestRequestResult<CodecTestModel>)result).Data?.Id);
+            Assert.IsFalse(hasBody);
+            Assert.IsTrue(result.IsSuccessful);
+            Assert.AreEqual(HttpStatusCode.NoContent, result.StatusCode);
+            Assert.AreEqual(typeof(RestRequestResult), result.GetType());
+        }
+
+        /// <summary>Verifies that the corrected header path retains result-based send errors and cancellation.</summary>
+        [TestMethod]
+        [DataRow("POST", false)]
+        [DataRow("POST", true)]
+        [DataRow("PUT", false)]
+        [DataRow("PUT", true)]
+        public async Task UntypedHeaderPayloadOverloadsPreserveFailures(string method, bool cancel)
+        {
+            int sends = 0;
+            HttpRequestException expected = new("network unavailable");
+            using CancellationTokenSource cancellation = new();
+            using RecordingMessageHandler handler = new((_, token) =>
+            {
+                sends++;
+                token.ThrowIfCancellationRequested();
+                return Task.FromException<HttpResponseMessage>(expected);
+            });
+            using HttpClientContext context = new HttpClientContextBuilder().AddHandler(handler).Build();
+            using RestlingClient client = new(context);
+            if (cancel)
+                cancellation.Cancel();
+
+            RestRequestResult result = method == "POST"
+                ? await client.PostAsync("https://example.test/failure", "payload", new RequestHeaders(), cancellationToken: cancellation.Token)
+                : await client.PutAsync("https://example.test/failure", "payload", new RequestHeaders(), cancellationToken: cancellation.Token);
+
+            Assert.AreEqual(1, sends);
+            Assert.IsFalse(result.IsSuccessful);
+            Assert.IsNull(result.StatusCode);
+            Assert.AreEqual(typeof(RestRequestResult), result.GetType());
+            if (cancel)
+                Assert.IsInstanceOfType<OperationCanceledException>(result.Exception);
+            else
+                Assert.AreSame(expected, result.Exception);
         }
 
         /// <summary>Creates a deterministic JSON response.</summary>

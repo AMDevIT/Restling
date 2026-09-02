@@ -2,7 +2,7 @@
 
 ## Objective and status
 
-The user authorized test execution after the HTTP pipeline refactor. Restore, solution build, and the selected offline regression suites completed successfully. No source-code correction was needed during this verification.
+This report records the initial verification after the HTTP pipeline refactor, before the separately approved POST/PUT fix. Restore, solution build, and the selected offline regression suites completed successfully. No source-code correction was needed during this initial verification. For newer results and confirmed cookie defects, see `post-put-cookies.md`.
 
 ## Execution
 
