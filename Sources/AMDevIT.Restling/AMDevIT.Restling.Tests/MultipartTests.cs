@@ -6,7 +6,7 @@ using AMDevIT.Restling.Tests.Multipart;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using RestlingHttpMethod = AMDevIT.Restling.Core.Network.HttpMethod;
+using RestlingHttpMethod = AMDevIT.Restling.Core.HttpMethod;
 
 namespace AMDevIT.Restling.Tests
 {
