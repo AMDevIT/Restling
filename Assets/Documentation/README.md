@@ -84,6 +84,22 @@ In the following example, we will instantiate a HttpClientContext using the Http
 
 This code will allow the Restling client to send and receive cookies when a method is executed, adding the app-version header and setting a new user-agent.
 
+### Explicit proxy
+
+```csharp
+HttpClientContextBuilder builder = new();
+builder.AddProxy("http://proxy.example.com:8080", allowAutoRedirect: false);
+using RestlingClient client = new(builder);
+```
+
+`AddProxy(string proxyUri, bool allowAutoRedirect)` enables the proxy on a directly supplied `SocketsHttpHandler` or `HttpClientHandler`, or on the builder-created native handler. Cookie settings and ownership are preserved. `allowAutoRedirect` controls HTTP response redirects, not proxy bypass.
+
+The address must be an absolute HTTP, HTTPS, SOCKS4, SOCKS4a, or SOCKS5 URI containing a host and optional port; embedded credentials, non-root paths, queries, and fragments are rejected. Native/platform transport support still applies. Configure proxy credentials through `ConfigureHandler` after `AddProxy` when needed.
+
+Configure before the first request. `AddProxy` works before or after `AddHandler` and `ConfigureHandler`; later callback changes are retained by `Build`. A replacement native handler receives the last `AddProxy` selection. Custom/delegating handlers require explicit transport configuration and are rejected by this method. Existing custom builder implementations remain compatible through a default interface implementation that throws `NotSupportedException`.
+
+Proxy selection applies to the whole context. Per-request overrides are not provided: use separate contexts/handlers for another proxy or direct connections (`UseProxy = false`). Existing defaults remain unchanged when `AddProxy` is not used.
+
 ### Example 2: Advanced customization
 
 ```csharp

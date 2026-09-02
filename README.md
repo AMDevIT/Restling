@@ -133,6 +133,22 @@ builder.ConfigureHandler(handler =>
 RestlingClient client = new(builder);
 ```
 
+### Explicit proxy
+
+```csharp
+HttpClientContextBuilder builder = new();
+builder.AddProxy("http://proxy.example.com:8080", allowAutoRedirect: false);
+using RestlingClient client = new(builder);
+```
+
+`AddProxy(string proxyUri, bool allowAutoRedirect)` enables an explicit proxy on a directly supplied `SocketsHttpHandler` or `HttpClientHandler`, or on the native handler created by the builder. It preserves handler ownership and cookie settings. The boolean controls automatic HTTP response redirects, not proxy bypass.
+
+Use an absolute `http`, `https`, `socks4`, `socks4a`, or `socks5` URI with a host and optional port; embedded credentials, non-root paths, queries, and fragments are rejected. These schemes are supported by the [.NET proxy transport](https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpclient.defaultproxy?view=net-10.0); availability on platform-specific handlers depends on the runtime. For authentication, configure the native handler's `Proxy.Credentials` through `ConfigureHandler` after `AddProxy`.
+
+Call `AddProxy` before sending requests. It works before or after `AddHandler` and `ConfigureHandler`; a later `ConfigureHandler` callback can override its settings, and `Build` does not reset them. Replacing the native handler applies the last `AddProxy` selection. Opaque custom/delegating handlers throw `NotSupportedException` instead of silently ignoring the proxy. Without `AddProxy`, existing transport defaults are unchanged.
+
+Proxy selection is context-wide, not per request. For direct connections (`UseProxy = false`) or a different proxy, use separately configured contexts/handlers; do not mutate a shared active handler.
+
 ## Ownership and disposal
 
 A client created with its default constructor or with `HttpClientContextBuilder` owns the generated context and disposes it:

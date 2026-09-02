@@ -63,6 +63,16 @@ namespace AMDevIT.Restling.Core.Network.Builders
         }
         HttpClientContextBuilder ConfigureHandler(Action<HttpMessageHandler> configureHandler);
 
+        /// <summary>Selects an explicit proxy and HTTP redirect policy when supported by the builder.</summary>
+        /// <param name="proxyUri">An absolute proxy URI without embedded credentials.</param>
+        /// <param name="allowAutoRedirect">Whether the handler automatically follows HTTP response redirects.</param>
+        /// <returns>The current builder instance.</returns>
+        /// <remarks>Existing custom builders need not implement this member.</remarks>
+        HttpClientContextBuilder AddProxy(string proxyUri, bool allowAutoRedirect)
+        {
+            throw new NotSupportedException("This builder does not support proxy configuration. Configure its transport handler explicitly.");
+        }
+
         #endregion
 
         #region Http parameters

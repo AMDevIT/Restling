@@ -30,6 +30,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
         private AuthenticationHeader? authenticationHeader = null;
         private TimeSpan? timeout = null;
         private ContentCodecRegistry codecs = new();
+        private WebProxy? proxy;
+        private bool allowAutoRedirect;
 
         #endregion
 
@@ -124,6 +126,9 @@ namespace AMDevIT.Restling.Core.Network.Builders
             if (!Enum.IsDefined(ownership))
                 throw new ArgumentOutOfRangeException(nameof(ownership));
 
+            if (this.proxy != null)
+                ApplyProxy(handler, this.proxy, this.allowAutoRedirect);
+
             this.httpMessageHandler = handler;
             this.handlerOwnership = ownership;
             this.ResolveCookieContainer(enableCookies: true);
@@ -140,9 +145,40 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 this.httpMessageHandler = new SocketsHttpHandler();
                 this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
                 this.ResolveCookieContainer(enableCookies: true);
+                if (this.proxy != null)
+                    ApplyProxy(this.httpMessageHandler, this.proxy, this.allowAutoRedirect);
             }
 
             configureHandler(this.httpMessageHandler);
+            return this;
+        }
+
+        /// <summary>Selects an explicit proxy and HTTP redirect policy for a native handler.</summary>
+        /// <param name="proxyUri">An absolute HTTP, HTTPS, SOCKS4, SOCKS4a, or SOCKS5 proxy URI without credentials, query, fragment, or a non-root path.</param>
+        /// <param name="allowAutoRedirect">Whether the handler automatically follows HTTP response redirects.</param>
+        /// <returns>The current builder instance.</returns>
+        /// <exception cref="ArgumentException">The proxy URI is invalid or unsupported.</exception>
+        /// <exception cref="NotSupportedException">The selected handler is not a directly supplied native handler.</exception>
+        /// <exception cref="InvalidOperationException">The selected handler has already started processing requests.</exception>
+        /// <remarks>Configure before sending requests. Credentials can be set through ConfigureHandler. Later ConfigureHandler changes are retained by Build.</remarks>
+        public HttpClientContextBuilder AddProxy(string proxyUri, bool allowAutoRedirect)
+        {
+            Uri? address;
+            WebProxy selectedProxy;
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(proxyUri);
+            if (!Uri.TryCreate(proxyUri, UriKind.Absolute, out address) ||
+                string.IsNullOrEmpty(address.Host) ||
+                address.Scheme is not ("http" or "https" or "socks4" or "socks4a" or "socks5") ||
+                address.UserInfo.Length != 0 || address.Query.Length != 0 || address.Fragment.Length != 0 ||
+                (address.AbsolutePath.Length != 0 && address.AbsolutePath != "/"))
+                throw new ArgumentException("Specify an absolute HTTP, HTTPS, or SOCKS proxy URI containing only a host and optional port. Configure credentials through ConfigureHandler.", nameof(proxyUri));
+
+            selectedProxy = new WebProxy(address);
+            if (this.httpMessageHandler != null)
+                ApplyProxy(this.httpMessageHandler, selectedProxy, allowAutoRedirect);
+            this.proxy = selectedProxy;
+            this.allowAutoRedirect = allowAutoRedirect;
             return this;
         }
 
@@ -237,6 +273,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 };
                 this.httpMessageHandler = socketsHttpHandler;
                 this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
+                if (this.proxy != null)
+                    ApplyProxy(this.httpMessageHandler, this.proxy, this.allowAutoRedirect);
             }
 
             effectiveCookieContainer = this.ResolveCookieContainer();
@@ -281,6 +319,34 @@ namespace AMDevIT.Restling.Core.Network.Builders
             };
 
             return httpClientContext;
+        }
+
+        /// <summary>Applies explicit proxy settings without replacing the handler or its cookie container.</summary>
+        private static void ApplyProxy(HttpMessageHandler handler, WebProxy proxy, bool allowAutoRedirect)
+        {
+            switch (handler)
+            {
+                case SocketsHttpHandler socketsHttpHandler:
+                    if (!ReferenceEquals(socketsHttpHandler.Proxy, proxy))
+                        socketsHttpHandler.Proxy = proxy;
+                    if (!socketsHttpHandler.UseProxy)
+                        socketsHttpHandler.UseProxy = true;
+                    if (socketsHttpHandler.AllowAutoRedirect != allowAutoRedirect)
+                        socketsHttpHandler.AllowAutoRedirect = allowAutoRedirect;
+                    break;
+
+                case HttpClientHandler httpClientHandler:
+                    if (!ReferenceEquals(httpClientHandler.Proxy, proxy))
+                        httpClientHandler.Proxy = proxy;
+                    if (!httpClientHandler.UseProxy)
+                        httpClientHandler.UseProxy = true;
+                    if (httpClientHandler.AllowAutoRedirect != allowAutoRedirect)
+                        httpClientHandler.AllowAutoRedirect = allowAutoRedirect;
+                    break;
+
+                default:
+                    throw new NotSupportedException("AddProxy requires a directly supplied SocketsHttpHandler or HttpClientHandler. Configure custom or delegating handlers explicitly.");
+            }
         }
 
         /// <summary>Shares the explicit or native cookie container without replacing existing handler state unnecessarily.</summary>

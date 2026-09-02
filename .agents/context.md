@@ -2,7 +2,7 @@
 ## Objective and status
 
 - Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, and centralized HTTP execution with historical-behavior regression tests.
-- Status: POST/PUT payload and cookie-builder corrections are implemented and verified. Latest solution build passed without warnings/errors; all 118 selected local tests passed on net10.0, including all 36 cookie cases.
+- Status: POST/PUT payload and cookie-builder corrections plus explicit AddProxy configuration are implemented and verified. Latest solution build passed without warnings/errors; all 161 selected local tests passed on net10.0, including 36 cookie and 43 proxy cases.
 
 ## Decisions made
 
@@ -23,6 +23,7 @@
 - Historical serializer precedence, null-payload handling, direct HttpClient version defaults, and result-versus-exception differences remain explicit at the pipeline boundary.
 - After separate user approval, the untyped POST/PUT header overloads now send their payload and return an untyped result through the centralized pipeline. Other serializer/overload contracts remain unchanged.
 - After explicit approval, cookie binding is centralized for directly supplied/configured native handlers. Explicit containers take precedence; otherwise the handler's existing jar and cookie policy are retained. Redirect and ownership settings remain unchanged.
+- AddProxy(string proxyUri, bool allowAutoRedirect) configures directly supported native handlers, enables the explicit proxy, and selects HTTP redirect behavior while preserving cookies/ownership. It supports handler registration in either order; later ConfigureHandler changes remain authoritative for that handler. Custom/delegating handlers are rejected; per-request proxy overrides are deferred.
 
 ## Affected files
 
@@ -37,6 +38,7 @@
 - Recorded authorized restore/build/test results and remaining verification scope in `.agents/test-verification.md`.
 - Updated POST/PUT regression tests, added loopback cookie tests/helper, and recorded the follow-up in `.agents/post-put-cookies.md`.
 - Corrected HttpClientContextBuilder cookie binding, added 18 CookieBuilderTests cases, and recorded completion in `.agents/cookie-builder.md`.
+- Added AddProxy to the builder/interface, 43 ProxyBuilderTests cases, proxy sections in both READMEs, and `.agents/proxy-builder.md`.
 
 ## Checks performed
 
@@ -53,6 +55,7 @@
 - Runtime verification: 49 pipeline, 6 codec, 7 ownership, 6 multipart, and 6 XML security cases passed (74 total; 0 failed/skipped) on net10.0. TRX reports are under `TestResults/http-pipeline/`.
 - Follow-up verification: reproduced the POST/PUT bug with 4 failing tests before fixing it. Latest run has 57 pipeline + 25 existing codec/ownership/multipart/security cases passing; 10/18 cookie cases pass and 8 expose the builder issue. Reports are under `TestResults/post-put-cookies/`.
 - Cookie-builder completion: the preceding eight cookie failures are resolved. Targeted cookie tests: 36/36 passed; full selected suite: 118/118 passed, 0 failed/skipped. Solution build passed with 0 warnings/errors. Reports are under `TestResults/cookie-builder/`.
+- Proxy completion: fetched Task-NewCodecs (aligned with upstream), restored and built successfully with 0 warnings/errors. All 161 selected local tests passed (118 existing + 43 proxy), including actual loopback proxy redirects/cookie persistence with both native handlers. Reports are under `TestResults/proxy/`; git diff --check passed.
 
 ## Open issues and recommended next step
 
@@ -60,3 +63,4 @@
 - Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
 - POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.
+- Per-request direct/custom proxy selection is not implemented. HTTPS CONNECT/TLS proxy, SOCKS handshakes, and proxy authentication exchanges remain untested; supported-scheme and credential-setting tests only verify configuration.
