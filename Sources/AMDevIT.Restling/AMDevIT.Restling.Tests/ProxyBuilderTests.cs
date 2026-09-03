@@ -133,9 +133,9 @@ namespace AMDevIT.Restling.Tests
             HttpClientContextBuilder builder = new();
             using HttpClientContext context = builder.AddProxy("http://localhost:8080", false).Build();
             if (address == null)
-                Assert.ThrowsException<ArgumentNullException>(() => builder.AddProxy(address!, true));
+                Assert.ThrowsExactly<ArgumentNullException>(() => builder.AddProxy(address!, true));
             else
-                Assert.ThrowsException<ArgumentException>(() => builder.AddProxy(address, true));
+                Assert.ThrowsExactly<ArgumentException>(() => builder.AddProxy(address, true));
             AssertProxy(context.HttpMessageHandler, "http://localhost:8080/", false);
         }
 
@@ -210,14 +210,14 @@ namespace AMDevIT.Restling.Tests
             if (proxyFirst)
             {
                 builder.AddProxy("http://localhost:8080", false);
-                Assert.ThrowsException<NotSupportedException>(() => builder.AddHandler(handler));
+                Assert.ThrowsExactly<NotSupportedException>(() => builder.AddHandler(handler));
                 using HttpClientContext context = builder.Build();
                 AssertProxy(context.HttpMessageHandler, "http://localhost:8080/", false);
             }
             else
             {
                 builder.AddHandler(handler);
-                Assert.ThrowsException<NotSupportedException>(() => builder.AddProxy("http://localhost:8080", false));
+                Assert.ThrowsExactly<NotSupportedException>(() => builder.AddProxy("http://localhost:8080", false));
                 using HttpClientContext context = builder.Build();
                 Assert.AreSame(handler, context.HttpMessageHandler);
             }
@@ -262,7 +262,7 @@ namespace AMDevIT.Restling.Tests
                 RestRequestResult initial = await firstClient.GetAsync(start);
                 Assert.IsNull(initial.Exception, initial.Exception?.ToString());
                 Assert.AreEqual(allowAutoRedirect ? HttpStatusCode.OK : HttpStatusCode.Found, initial.StatusCode);
-                Assert.ThrowsException<InvalidOperationException>(() => builder.AddProxy("http://localhost:8080", true));
+                Assert.ThrowsExactly<InvalidOperationException>(() => builder.AddProxy("http://localhost:8080", true));
             }
 
             using HttpClientContext nextContext = builder.Build();
