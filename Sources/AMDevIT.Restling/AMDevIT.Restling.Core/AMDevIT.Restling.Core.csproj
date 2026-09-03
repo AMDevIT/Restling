@@ -12,6 +12,7 @@
 		<!--<PackageIcon>RestlingIcon.png</PackageIcon>-->
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+ 		<PackageId>Restling</PackageId>
 	</PropertyGroup>
 
 	<ItemGroup>
