@@ -13,6 +13,12 @@ namespace AMDevIT.Restling.Tests
     [TestClass]
     public sealed class RequestProxyOverrideTests
     {
+        #region Fields
+
+        private static readonly string[] expected = ["http://127.0.0.1:1/raw", "http://127.0.0.1:1/form", "http://127.0.0.1:1/multipart"];
+
+        #endregion
+
         #region Methods
 
         /// <summary>Default, custom proxy, and direct calls use independent routes and one shared cookie jar.</summary>
@@ -215,7 +221,7 @@ namespace AMDevIT.Restling.Tests
             Assert.IsInstanceOfType<WebProxy>(alternative.Proxy);
             Assert.AreEqual(new Uri("http://localhost:8080/"), ((WebProxy)alternative.Proxy).Address);
             Assert.AreSame(credentials, alternative.Proxy.Credentials);
-        }
+        }        
 
         /// <summary>Raw, form, and buffered multipart executions all honor the inherited request override.</summary>
         [TestMethod]
@@ -243,7 +249,7 @@ namespace AMDevIT.Restling.Tests
             Assert.IsTrue((await client.ExecuteFormUrlEncodedRequest(form)).IsSuccessful);
             Assert.IsTrue((await client.ExecuteMultipartRequestAsync(multipart)).IsSuccessful);
             IReadOnlyList<LoopbackCookieServer.Request> requests = await proxy.Requests;
-            CollectionAssert.AreEqual(new[] { "http://127.0.0.1:1/raw", "http://127.0.0.1:1/form", "http://127.0.0.1:1/multipart" },
+            CollectionAssert.AreEqual(expected,
                                       requests.Select(request => request.Target).ToArray());
         }
 

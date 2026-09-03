@@ -87,7 +87,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
         }
 
         /// <summary>Resolves the reusable transport selected for an individual request.</summary>
-        internal HttpClient ResolveHttpClient(RequestProxyOptions? options)
+        public HttpClient ResolveHttpClient(RequestProxyOptions? options)
         {
             return this.requestTransports.Resolve(options);
         }
