@@ -185,6 +185,17 @@ namespace AMDevIT.Restling.Core
                                                                  cancellationToken);
         }
 
+        /// <summary>Executes a GET request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> GetAsync(string uri,
+                                                      RequestProxyOptions proxyOptions,
+                                                      CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Get) { ProxyOptions = proxyOptions };
+            return await this.httpExecutionPipeline.ExecuteAsync(restRequest,
+                                                                 () => this.BuildDirectHttpRequestMessage(restRequest),
+                                                                 cancellationToken);
+        }
+
         public async Task<RestRequestResult> GetAsync(string uri, 
                                                       RequestHeaders requestHeaders, 
                                                       CancellationToken cancellationToken = default)
@@ -198,6 +209,16 @@ namespace AMDevIT.Restling.Core
 
             restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
+        }
+
+        /// <summary>Executes a GET request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> GetAsync(string uri,
+                                                      RequestHeaders requestHeaders,
+                                                      RequestProxyOptions proxyOptions,
+                                                      CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Get, requestHeaders) { ProxyOptions = proxyOptions };
+            return await this.ExecuteRequestAsync(restRequest, cancellationToken: cancellationToken);
         }
 
         public async Task<RestRequestResult<T>> GetAsync<T>(string uri,
@@ -219,6 +240,19 @@ namespace AMDevIT.Restling.Core
             return restRequestResult;
         }
 
+        /// <summary>Executes a typed GET request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<T>> GetAsync<T>(string uri,
+                                                            RequestHeaders requestHeaders,
+                                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                            RequestProxyOptions proxyOptions,
+                                                            CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Get, requestHeaders) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
+        }
+
         /// <summary>
         /// Execute a GET request to the specified URI and return the result as a <see cref="RestRequestResult{T}"/> instance.
         /// </summary>
@@ -235,6 +269,20 @@ namespace AMDevIT.Restling.Core
 
             restRequest = new RestRequest(uri, HttpMethod.Get);
 
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteTypedRequestAsync<T>(restRequest,
+                                                          restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                          cancellationToken);
+        }
+
+        /// <summary>Executes a typed GET request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<T>> GetAsync<T>(string uri,
+                                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                            RequestProxyOptions proxyOptions,
+                                                            CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Get) { ProxyOptions = proxyOptions };
             if (forcePayloadJsonSerializerLibrary != null)
                 restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
             return await this.ExecuteTypedRequestAsync<T>(restRequest,
@@ -272,6 +320,19 @@ namespace AMDevIT.Restling.Core
             return await this.ExecutePayloadRequestAsync(restRequest, cancellationToken);
         }
 
+        /// <summary>Executes a POST request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> PostAsync<T>(string uri,
+                                                          T requestData,
+                                                          PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                          RequestProxyOptions proxyOptions,
+                                                          CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Post, requestData) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecutePayloadRequestAsync(restRequest, cancellationToken);
+        }
+
         /// <summary>
         /// Execute a POST request to the specified URI and return the result as a <see cref="RestRequestResult{T}"/> instance.
         /// </summary>
@@ -300,6 +361,21 @@ namespace AMDevIT.Restling.Core
                                                                cancellationToken);
         }
 
+        /// <summary>Executes a typed POST request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
+                                                                T requestData,
+                                                                PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                                RequestProxyOptions proxyOptions,
+                                                                CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Post, requestData) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecutePayloadRequestAsync<D, T>(restRequest,
+                                                               restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                               cancellationToken);
+        }
+
         public async Task<RestRequestResult> PostAsync<T>(string uri, 
                                                           T requestData,
                                                           RequestHeaders requestHeaders,
@@ -319,6 +395,20 @@ namespace AMDevIT.Restling.Core
 
             restRequestResult = await this.ExecuteHeaderPayloadRequestAsync(restRequest, cancellationToken);
             return restRequestResult;
+        }
+
+        /// <summary>Executes a POST request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> PostAsync<T>(string uri,
+                                                          T requestData,
+                                                          RequestHeaders requestHeaders,
+                                                          PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                          RequestProxyOptions proxyOptions,
+                                                          CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Post, requestData, requestHeaders) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteHeaderPayloadRequestAsync(restRequest, cancellationToken);
         }
 
         public async Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
@@ -342,6 +432,20 @@ namespace AMDevIT.Restling.Core
 
         }
 
+        /// <summary>Executes a typed POST request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
+                                                                T requestData,
+                                                                RequestHeaders requestHeaders,
+                                                                PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                                RequestProxyOptions proxyOptions,
+                                                                CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Post, requestData, requestHeaders) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteRequestAsync<D, T>(restRequest, cancellationToken: cancellationToken);
+        }
+
         #endregion
 
         #region PUT
@@ -357,6 +461,19 @@ namespace AMDevIT.Restling.Core
                                              HttpMethod.Put,
                                              requestData);
 
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecutePayloadRequestAsync(restRequest, cancellationToken);
+        }
+
+        /// <summary>Executes a PUT request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> PutAsync<T>(string uri,
+                                                         T requestData,
+                                                         PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                         RequestProxyOptions proxyOptions,
+                                                         CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Put, requestData) { ProxyOptions = proxyOptions };
             if (forcePayloadJsonSerializerLibrary != null)
                 restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
             return await this.ExecutePayloadRequestAsync(restRequest, cancellationToken);
@@ -389,6 +506,21 @@ namespace AMDevIT.Restling.Core
                                                                cancellationToken);
         }
 
+        /// <summary>Executes a typed PUT request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
+                                                               T requestData,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                               RequestProxyOptions proxyOptions,
+                                                               CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Put, requestData) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecutePayloadRequestAsync<D, T>(restRequest,
+                                                               restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                               cancellationToken);
+        }
+
         public async Task<RestRequestResult> PutAsync<T>(string uri,
                                                          T requestData,
                                                          RequestHeaders requestHeaders,
@@ -408,6 +540,20 @@ namespace AMDevIT.Restling.Core
 
             restRequestResult = await this.ExecuteHeaderPayloadRequestAsync(restRequest, cancellationToken);
             return restRequestResult;
+        }
+
+        /// <summary>Executes a PUT request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> PutAsync<T>(string uri,
+                                                         T requestData,
+                                                         RequestHeaders requestHeaders,
+                                                         PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                         RequestProxyOptions proxyOptions,
+                                                         CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Put, requestData, requestHeaders) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteHeaderPayloadRequestAsync(restRequest, cancellationToken);
         }
 
         public async Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
@@ -431,6 +577,20 @@ namespace AMDevIT.Restling.Core
             return restRequestResult;
         }
 
+        /// <summary>Executes a typed PUT request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
+                                                               T requestData,
+                                                               RequestHeaders requestHeaders,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                               RequestProxyOptions proxyOptions,
+                                                               CancellationToken cancellationToken = default)
+        {
+            RestRequest<T> restRequest = new(uri, HttpMethod.Put, requestData, requestHeaders) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteRequestAsync<D, T>(restRequest, cancellationToken: cancellationToken);
+        }
+
         #endregion
 
         #region DELETE
@@ -446,6 +606,17 @@ namespace AMDevIT.Restling.Core
             RestRequest restRequest;
 
             restRequest = new RestRequest(uri, HttpMethod.Delete);
+            return await this.httpExecutionPipeline.ExecuteAsync(restRequest,
+                                                                 () => this.BuildDirectHttpRequestMessage(restRequest),
+                                                                 cancellationToken);
+        }
+
+        /// <summary>Executes a DELETE request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> DeleteAsync(string uri,
+                                                         RequestProxyOptions proxyOptions,
+                                                         CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Delete) { ProxyOptions = proxyOptions };
             return await this.httpExecutionPipeline.ExecuteAsync(restRequest,
                                                                  () => this.BuildDirectHttpRequestMessage(restRequest),
                                                                  cancellationToken);
@@ -474,6 +645,20 @@ namespace AMDevIT.Restling.Core
                                                           cancellationToken);
         }
 
+        /// <summary>Executes a typed DELETE request with a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                               RequestProxyOptions proxyOptions,
+                                                               CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Delete) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteTypedRequestAsync<T>(restRequest,
+                                                          restRequest.ForcePayloadJsonSerializerLibrary ?? this.SelectedDefaultSerializationLibrary,
+                                                          cancellationToken);
+        }
+
         public async Task<RestRequestResult> DeleteAsync(string uri,
                                                          RequestHeaders requestHeaders,
                                                          CancellationToken cancellationToken = default)
@@ -487,6 +672,16 @@ namespace AMDevIT.Restling.Core
 
             restRequestResult = await this.ExecuteRequestAsync(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
+        }
+
+        /// <summary>Executes a DELETE request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult> DeleteAsync(string uri,
+                                                         RequestHeaders requestHeaders,
+                                                         RequestProxyOptions proxyOptions,
+                                                         CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Delete, requestHeaders) { ProxyOptions = proxyOptions };
+            return await this.ExecuteRequestAsync(restRequest, cancellationToken: cancellationToken);
         }
 
         public async Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
@@ -506,6 +701,19 @@ namespace AMDevIT.Restling.Core
 
             restRequestResult = await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
             return restRequestResult;
+        }
+
+        /// <summary>Executes a typed DELETE request with headers and a per-request proxy selection.</summary>
+        public async Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
+                                                               RequestHeaders requestHeaders,
+                                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                               RequestProxyOptions proxyOptions,
+                                                               CancellationToken cancellationToken = default)
+        {
+            RestRequest restRequest = new(uri, HttpMethod.Delete, requestHeaders) { ProxyOptions = proxyOptions };
+            if (forcePayloadJsonSerializerLibrary != null)
+                restRequest.ForcePayloadJsonSerializerLibrary = forcePayloadJsonSerializerLibrary;
+            return await this.ExecuteRequestAsync<T>(restRequest, cancellationToken: cancellationToken);
         }
 
         #endregion

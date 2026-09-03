@@ -15,7 +15,7 @@ Implemented request-level routing overrides with `Default`, `Direct`, and `Custo
 - A default builder supplies a native alternative-handler factory automatically. AddHandler or ConfigureHandler disables implicit recreation because arbitrary external TLS, certificate, pooling, platform, and delegating-handler settings cannot be cloned safely.
 - `AddRequestHandlerFactory` explicitly enables overrides for externally supplied/configured handlers. It receives the shared cookie container, must return a fresh SocketsHttpHandler or HttpClientHandler, and transfers credentials from a factory-seeded Proxy to the selected custom proxy.
 - Missing/invalid factories fail explicitly rather than silently using the context route. Existing default calls and existing builder/context constructors remain source and binary compatible.
-- Direct convenience methods were not expanded with many overloads; callers express routing consistently through RestRequest and ExecuteRequestAsync, including specialized request APIs.
+- A follow-up adds all 16 direct GET/POST/PUT/DELETE overloads, including typed and header variants, to RestlingClient and IRestlingClient. CancellationToken is always last. Serializer parameters precede RequestProxyOptions and remain required in the new signatures, preserving unambiguous compatibility for existing positional null calls.
 
 ## Affected files
 
@@ -31,10 +31,12 @@ Implemented request-level routing overrides with `Default`, `Direct`, and `Custo
 - Final solution build passed for Core/CSV net8.0, net9.0, net10.0 and tests net10.0 with 0 warnings/errors. An earlier test-triggered incremental build emitted CS8892 from generated MSTest entry-point files after the upstream dependency/project update; it was absent from the final build and did not originate in modified Restling source.
 - Targeted final run: 59/59 request/context proxy cases passed.
 - Selected regression run: 177/177 passed, 0 failed/skipped (161 prior cases + 16 request-proxy cases).
+- Direct-overload follow-up: 60/60 targeted proxy cases and 178/178 selected regression cases passed. The aggregate test invokes all 16 signatures through IRestlingClient and verifies CancellationToken is their final parameter.
+- The follow-up solution build passed Core/CSV net8.0, net9.0, net10.0 and tests net10.0 with 0 errors. It reported the previously observed generated MSTest CS8892 entry-point warning; modified library sources emitted no warnings.
 - Loopback tests cover default/custom/direct route isolation, absolute versus origin request targets, shared response cookies, copied headers, proxy/redirect cache keys, native factory invocation, missing/invalid factories, alternative ownership/disposal, buffered specialized requests, and mixed-replace streaming.
 - No external proxy or destination was contacted. Reports are in TestResults/request-proxy/.
 - git diff --check passed.
 
 ## Remaining scope
 
-Runtime tests still target net10.0 on Windows. HTTPS CONNECT/TLS proxy and SOCKS handshakes, real proxy authentication exchanges, mobile/platform handlers, convenience-method overloads, bounded/expiring transport-cache policies, and integration tests against external services remain outside this step.
+Runtime tests still target net10.0 on Windows. HTTPS CONNECT/TLS proxy and SOCKS handshakes, real proxy authentication exchanges, mobile/platform handlers, bounded/expiring transport-cache policies, and integration tests against external services remain outside this step.

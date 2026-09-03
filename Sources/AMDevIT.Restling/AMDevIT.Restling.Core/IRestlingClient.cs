@@ -85,6 +85,40 @@ namespace AMDevIT.Restling.Core
                                                PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                CancellationToken cancellationToken = default);
 
+        /// <summary>Executes an untyped GET request with a per-request proxy selection.</summary>
+        Task<RestRequestResult> GetAsync(string uri, RequestProxyOptions proxyOptions, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes an untyped GET request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult> GetAsync(string uri,
+                                         RequestHeaders requestHeaders,
+                                         RequestProxyOptions proxyOptions,
+                                         CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed GET request with a per-request proxy selection.</summary>
+        Task<RestRequestResult<T>> GetAsync<T>(string uri,
+                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                               RequestProxyOptions proxyOptions,
+                                               CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed GET request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult<T>> GetAsync<T>(string uri,
+                                               RequestHeaders requestHeaders,
+                                               PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                               RequestProxyOptions proxyOptions,
+                                               CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
         #endregion
 
         #region POST
@@ -128,6 +162,48 @@ namespace AMDevIT.Restling.Core
                                                    PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                    CancellationToken cancellationToken = default);
 
+        /// <summary>Executes an untyped POST request with a per-request proxy selection.</summary>
+        Task<RestRequestResult> PostAsync<T>(string uri,
+                                             T requestData,
+                                             PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                             RequestProxyOptions proxyOptions,
+                                             CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed POST request with a per-request proxy selection.</summary>
+        Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
+                                                   T requestData,
+                                                   PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                   RequestProxyOptions proxyOptions,
+                                                   CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes an untyped POST request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult> PostAsync<T>(string uri,
+                                             T requestData,
+                                             RequestHeaders requestHeaders,
+                                             PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                             RequestProxyOptions proxyOptions,
+                                             CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed POST request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult<D>> PostAsync<D, T>(string uri,
+                                                   T requestData,
+                                                   RequestHeaders requestHeaders,
+                                                   PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                   RequestProxyOptions proxyOptions,
+                                                   CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
         #endregion
 
         #region PUT
@@ -163,6 +239,48 @@ namespace AMDevIT.Restling.Core
                                                   PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                   CancellationToken cancellationToken = default);
 
+        /// <summary>Executes an untyped PUT request with a per-request proxy selection.</summary>
+        Task<RestRequestResult> PutAsync<T>(string uri,
+                                            T requestData,
+                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                            RequestProxyOptions proxyOptions,
+                                            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed PUT request with a per-request proxy selection.</summary>
+        Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
+                                                  T requestData,
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                  RequestProxyOptions proxyOptions,
+                                                  CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes an untyped PUT request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult> PutAsync<T>(string uri,
+                                            T requestData,
+                                            RequestHeaders requestHeaders,
+                                            PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                            RequestProxyOptions proxyOptions,
+                                            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed PUT request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult<D>> PutAsync<D, T>(string uri,
+                                                  T requestData,
+                                                  RequestHeaders requestHeaders,
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                  RequestProxyOptions proxyOptions,
+                                                  CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
         #endregion
 
         #region DELETE
@@ -195,6 +313,42 @@ namespace AMDevIT.Restling.Core
                                                   RequestHeaders requestHeaders,
                                                   PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary = null,
                                                   CancellationToken cancellationToken = default);
+
+        /// <summary>Executes an untyped DELETE request with a per-request proxy selection.</summary>
+        Task<RestRequestResult> DeleteAsync(string uri,
+                                            RequestProxyOptions proxyOptions,
+                                            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed DELETE request with a per-request proxy selection.</summary>
+        Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                  RequestProxyOptions proxyOptions,
+                                                  CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes an untyped DELETE request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult> DeleteAsync(string uri,
+                                            RequestHeaders requestHeaders,
+                                            RequestProxyOptions proxyOptions,
+                                            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
+
+        /// <summary>Executes a typed DELETE request with headers and a per-request proxy selection.</summary>
+        Task<RestRequestResult<T>> DeleteAsync<T>(string uri,
+                                                  RequestHeaders requestHeaders,
+                                                  PayloadJsonSerializerLibrary? forcePayloadJsonSerializerLibrary,
+                                                  RequestProxyOptions proxyOptions,
+                                                  CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("This client does not support per-request proxy overrides.");
+        }
 
         #endregion
 

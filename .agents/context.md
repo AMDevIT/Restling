@@ -2,7 +2,7 @@
 ## Objective and status
 
 - Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, and centralized HTTP execution with historical-behavior regression tests.
-- Status: explicit context and per-request proxy configuration is implemented and verified alongside the earlier codec, ownership, multipart, pipeline, POST/PUT, and cookie work. Latest solution build passed without warnings/errors; all 177 selected local tests passed on net10.0.
+- Status: explicit context and per-request proxy configuration, including all direct-method overloads, is implemented and verified alongside the earlier work. The selected local regression now has 178 passing tests on net10.0.
 
 ## Decisions made
 
@@ -25,6 +25,7 @@
 - After explicit approval, cookie binding is centralized for directly supplied/configured native handlers. Explicit containers take precedence; otherwise the handler's existing jar and cookie policy are retained. Redirect and ownership settings remain unchanged.
 - AddProxy(string proxyUri, bool allowAutoRedirect) configures directly supported native handlers, enables the context's explicit proxy, and selects HTTP redirect behavior while preserving cookies/ownership. It supports handler registration in either order; later ConfigureHandler changes remain authoritative for that handler. Custom/delegating default handlers are rejected by AddProxy; request-level alternatives use an explicit factory when needed.
 - RestRequest.ProxyOptions now selects Default, Direct, or Custom routing per request. Alternative transports are cached by immutable proxy/redirect selection, share the context CookieContainer, copy HttpClient defaults, and are owned by the context. Default builders supply a factory; externally supplied/configured handlers require AddRequestHandlerFactory rather than unsafe cloning.
+- All 16 direct GET/POST/PUT/DELETE variants expose RequestProxyOptions before the final CancellationToken. Serializer parameters precede it to avoid ambiguity with existing positional null calls; IRestlingClient default bodies preserve compatibility for external implementations.
 
 ## Affected files
 
@@ -41,6 +42,7 @@
 - Corrected HttpClientContextBuilder cookie binding, added 18 CookieBuilderTests cases, and recorded completion in `.agents/cookie-builder.md`.
 - Added AddProxy to the builder/interface, 43 ProxyBuilderTests cases, proxy sections in both READMEs, and `.agents/proxy-builder.md`.
 - Added request routing models/pool, integrated transport selection into the centralized buffered/streaming pipeline, added 16 RequestProxyOverrideTests cases, documented usage, and recorded `.agents/request-proxy.md`.
+- Added direct proxy overloads to RestlingClient/IRestlingClient and an aggregate test that invokes all 16 signatures and verifies CancellationToken is last.
 
 ## Checks performed
 
@@ -59,6 +61,8 @@
 - Cookie-builder completion: the preceding eight cookie failures are resolved. Targeted cookie tests: 36/36 passed; full selected suite: 118/118 passed, 0 failed/skipped. Solution build passed with 0 warnings/errors. Reports are under `TestResults/cookie-builder/`.
 - Proxy completion: fetched Task-NewCodecs (aligned with upstream), restored and built successfully with 0 warnings/errors. All 161 selected local tests passed (118 existing + 43 proxy), including actual loopback proxy redirects/cookie persistence with both native handlers. Reports are under `TestResults/proxy/`; git diff --check passed.
 - Per-request proxy completion: after the user pulled two upstream commits, fetch confirmed alignment. Restore succeeded; the final build passed across Core/CSV net8/net9/net10 and tests net10 with 0 warnings/errors. An intermediate test-triggered build emitted one generated MSTest CS8892 warning, absent from the final build. Targeted proxy tests passed 59/59 and the selected regression passed 177/177. Reports are under `TestResults/request-proxy/`; git diff --check passed.
+- Direct-overload follow-up: the 60 proxy tests and all 178 selected regression tests passed. Every new signature was exercised through IRestlingClient; reports are in TestResults/request-proxy/.
+- Follow-up multi-target build passed with 0 errors; the only warning was the previously observed CS8892 in generated MSTest entry-point code.
 
 ## Open issues and recommended next step
 
@@ -66,4 +70,4 @@
 - Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
 - POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.
-- Per-request direct/custom proxy selection is implemented. HTTPS CONNECT/TLS proxy, SOCKS handshakes, real proxy authentication exchanges, other runtime/platform executions, convenience overloads, and bounded cache eviction remain untested/out of scope.
+- Per-request direct/custom proxy selection and convenience overloads are implemented. HTTPS CONNECT/TLS proxy, SOCKS handshakes, real proxy authentication exchanges, other runtime/platform executions, and bounded cache eviction remain untested/out of scope.

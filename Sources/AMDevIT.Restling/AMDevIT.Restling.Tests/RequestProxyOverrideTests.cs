@@ -298,6 +298,48 @@ namespace AMDevIT.Restling.Tests
             Assert.AreSame(RequestProxyOptions.Default, RequestProxyOptions.Default);
         }
 
+        /// <summary>Every direct convenience family exposes proxy options with CancellationToken last.</summary>
+        [TestMethod]
+        public async Task DirectConvenienceOverloadsRouteThroughSelectedProxy()
+        {
+            string[] responses = Enumerable.Repeat(LoopbackCookieServer.Response(200), 16).ToArray();
+            await using LoopbackCookieServer proxy = new(responses);
+            using HttpClientContext context = new HttpClientContextBuilder().Build();
+            using RestlingClient concreteClient = new(context);
+            IRestlingClient client = concreteClient;
+            RequestProxyOptions options = RequestProxyOptions.Custom(proxy.BaseUri.AbsoluteUri);
+            RequestHeaders headers = new();
+            CancellationToken cancellationToken = CancellationToken.None;
+            List<bool> successful =
+            [
+                (await client.GetAsync("http://127.0.0.1:1/get", options, cancellationToken)).IsSuccessful,
+                (await client.GetAsync("http://127.0.0.1:1/get-headers", headers, options, cancellationToken)).IsSuccessful,
+                (await client.GetAsync<string>("http://127.0.0.1:1/get-typed", null, options, cancellationToken)).IsSuccessful,
+                (await client.GetAsync<string>("http://127.0.0.1:1/get-typed-headers", headers, null, options, cancellationToken)).IsSuccessful,
+                (await client.PostAsync("http://127.0.0.1:1/post", "data", null, options, cancellationToken)).IsSuccessful,
+                (await client.PostAsync("http://127.0.0.1:1/post-headers", "data", headers, null, options, cancellationToken)).IsSuccessful,
+                (await client.PostAsync<string, string>("http://127.0.0.1:1/post-typed", "data", null, options, cancellationToken)).IsSuccessful,
+                (await client.PostAsync<string, string>("http://127.0.0.1:1/post-typed-headers", "data", headers, null, options, cancellationToken)).IsSuccessful,
+                (await client.PutAsync("http://127.0.0.1:1/put", "data", null, options, cancellationToken)).IsSuccessful,
+                (await client.PutAsync("http://127.0.0.1:1/put-headers", "data", headers, null, options, cancellationToken)).IsSuccessful,
+                (await client.PutAsync<string, string>("http://127.0.0.1:1/put-typed", "data", null, options, cancellationToken)).IsSuccessful,
+                (await client.PutAsync<string, string>("http://127.0.0.1:1/put-typed-headers", "data", headers, null, options, cancellationToken)).IsSuccessful,
+                (await client.DeleteAsync("http://127.0.0.1:1/delete", options, cancellationToken)).IsSuccessful,
+                (await client.DeleteAsync("http://127.0.0.1:1/delete-headers", headers, options, cancellationToken)).IsSuccessful,
+                (await client.DeleteAsync<string>("http://127.0.0.1:1/delete-typed", null, options, cancellationToken)).IsSuccessful,
+                (await client.DeleteAsync<string>("http://127.0.0.1:1/delete-typed-headers", headers, null, options, cancellationToken)).IsSuccessful
+            ];
+            IReadOnlyList<LoopbackCookieServer.Request> requests = await proxy.Requests;
+
+            Assert.IsTrue(successful.All(value => value));
+            Assert.AreEqual(16, requests.Count);
+            Assert.IsTrue(requests.All(request => request.Target.StartsWith("http://127.0.0.1:1/", StringComparison.Ordinal)));
+            IEnumerable<System.Reflection.MethodInfo> overloads = typeof(IRestlingClient).GetMethods()
+                .Where(method => method.GetParameters().Any(parameter => parameter.ParameterType == typeof(RequestProxyOptions)));
+            Assert.AreEqual(16, overloads.Count());
+            Assert.IsTrue(overloads.All(method => method.GetParameters()[^1].ParameterType == typeof(CancellationToken)));
+        }
+
         #endregion
     }
 }

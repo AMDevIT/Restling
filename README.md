@@ -169,6 +169,25 @@ RestRequestResult directResult = await client.ExecuteRequestAsync(directRequest)
 RestRequestResult proxiedResult = await client.ExecuteRequestAsync(proxiedRequest);
 ```
 
+The direct GET, POST, PUT, and DELETE methods provide the same selection, including typed and per-request-header variants. `CancellationToken` remains the final parameter in every overload:
+
+```csharp
+RequestProxyOptions proxyOptions = RequestProxyOptions.Custom("socks5://127.0.0.1:1080");
+
+RestRequestResult<TodoItem> getResult = await client.GetAsync<TodoItem>(uri,
+                                                                       forcePayloadJsonSerializerLibrary: null,
+                                                                       proxyOptions: proxyOptions,
+                                                                       cancellationToken: cancellationToken);
+
+RestRequestResult postResult = await client.PostAsync(uri,
+                                                      payload,
+                                                      forcePayloadJsonSerializerLibrary: null,
+                                                      proxyOptions: proxyOptions,
+                                                      cancellationToken: cancellationToken);
+```
+
+The serializer argument is explicit in these overloads so existing calls that pass `null` positionally remain unambiguous and source-compatible.
+
 `RequestProxyOptions.Default` (the initial value) uses the context transport unchanged. `Direct` disables both explicit and system proxies. `Custom` uses its dedicated proxy. Equivalent selections reuse one connection pool, while different proxy or redirect settings remain isolated. Alternative transports share the context cookie container and copy its `HttpClient` defaults; the context owns and disposes them.
 
 The default builder supplies alternative native handlers automatically. When an external handler or `ConfigureHandler` is used, provide an explicit factory so Restling does not guess how to clone TLS, certificate, pooling, or platform-specific settings:

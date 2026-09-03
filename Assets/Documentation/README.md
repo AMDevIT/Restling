@@ -114,6 +114,17 @@ RestRequest request = new("https://api.example.com/status", HttpMethod.Get)
 RestRequestResult result = await client.ExecuteRequestAsync(request);
 ```
 
+GET, POST, PUT, and DELETE convenience methods also expose proxy options, including typed and header variants. `CancellationToken` is always the final argument:
+
+```csharp
+RestRequestResult<ResourceModel> result = await client.GetAsync<ResourceModel>(uri,
+                                                                                forcePayloadJsonSerializerLibrary: null,
+                                                                                proxyOptions: RequestProxyOptions.Direct(),
+                                                                                cancellationToken: cancellationToken);
+```
+
+The serializer parameter remains explicit in these new signatures, preventing ambiguity with existing positional `null` calls.
+
 Use `RequestProxyOptions.Default` to retain the context transport, `Direct()` to disable explicit and system proxies, or `Custom(proxyUri)` for a dedicated proxy. Proxy and redirect combinations reuse isolated connection pools. Alternative transports share the context cookie jar, copy the default client's settings, and are disposed with the context. This applies to ordinary, raw, form-urlencoded, multipart, and mixed-replace streaming requests.
 
 The default builder creates suitable alternative native handlers automatically. A supplied handler or one customized through `ConfigureHandler` cannot be cloned safely, so register `AddRequestHandlerFactory(cookieContainer => ...)` when overrides are required. Factory-created handlers are owned by the context; Restling applies routing, redirect, and shared-cookie settings. A factory may seed `Proxy.Credentials`, which Restling retains when selecting the request proxy. Default routing remains available without a factory, while an attempted override fails explicitly.
