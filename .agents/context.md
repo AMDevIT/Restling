@@ -1,8 +1,8 @@
 # Restling development context
 ## Objective and status
 
-- Objective: add extensible codecs, explicit resource ownership, and complete MIME multipart support.
-- Status: codecs, ownership, buffered multipart, and mixed-replace streaming are implemented; runtime verification is deferred.
+- Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, and centralized HTTP execution with historical-behavior regression tests.
+- Status: POST/PUT payload and cookie-builder corrections are implemented and verified. Latest solution build passed without warnings/errors; all 118 selected local tests passed on net10.0, including all 36 cookie cases.
 
 ## Decisions made
 
@@ -19,6 +19,10 @@
 - Multipart writing accepts any MIME subtype and creates each part per execution.
 - Buffered multipart responses preserve MIME structure and decode parts through the configured codecs.
 - `multipart/x-mixed-replace` uses a separate incremental API rather than the buffered response parser.
+- Internal HTTP pipeline centralizes sending, timing, decoding, error results, logging, and response lifetime without taking ownership of shared transport resources.
+- Historical serializer precedence, null-payload handling, direct HttpClient version defaults, and result-versus-exception differences remain explicit at the pipeline boundary.
+- After separate user approval, the untyped POST/PUT header overloads now send their payload and return an untyped result through the centralized pipeline. Other serializer/overload contracts remain unchanged.
+- After explicit approval, cookie binding is centralized for directly supplied/configured native handlers. Explicit containers take precedence; otherwise the handler's existing jar and cookie policy are retained. Redirect and ownership settings remain unchanged.
 
 ## Affected files
 
@@ -28,6 +32,11 @@
 - Updated the repository and NuGet package READMEs and added `.agents/codecs.md`.
 - Added ownership enums, constructor overloads, builder integration, ownership regression tests, documentation, and `.agents/ownership.md`.
 - Added multipart request composition, response parsing, models, limits, streaming, regression tests, documentation, and `.agents/multipart.md`.
+- Added internal pipeline/streaming lease, integrated all client send paths, added 49 deterministic pipeline regression cases and test helpers, and documented the step in `.agents/http-pipeline.md`.
+- Corrected the existing multipart tests' HttpMethod namespace alias.
+- Recorded authorized restore/build/test results and remaining verification scope in `.agents/test-verification.md`.
+- Updated POST/PUT regression tests, added loopback cookie tests/helper, and recorded the follow-up in `.agents/post-put-cookies.md`.
+- Corrected HttpClientContextBuilder cookie binding, added 18 CookieBuilderTests cases, and recorded completion in `.agents/cookie-builder.md`.
 
 ## Checks performed
 
@@ -37,9 +46,17 @@
 - Parsed all project XML, checked solution entries, Markdown fences, public method comments, codec registrations, and `git diff --check`.
 - Performed static ownership checks for constructor defaults, compatibility aliases, disposal flags, and builder handler behavior.
 - Reviewed RFC 2046, RFC 7578, RFC 8710, and the IANA multipart registry before defining multipart scope.
-- Did not restore, build, or run tests, as explicitly requested by the user.
+- Restore/build/test execution was initially deferred at the user's request, then explicitly authorized and completed on 2026-09-02.
+- Fetched again for pipeline completion: HEAD is 3 commits ahead of origin/main, 0 behind; no pull/merge needed.
+- Statically compared pipeline behavior against the pre-refactor implementation, verified centralized send call sites, and checked the diff for whitespace errors. These checks do not establish that the new tests pass.
+- Authorized verification: restore passed; solution build passed for Core/CSV net8.0, net9.0, net10.0 and tests net10.0 with 0 warnings/errors.
+- Runtime verification: 49 pipeline, 6 codec, 7 ownership, 6 multipart, and 6 XML security cases passed (74 total; 0 failed/skipped) on net10.0. TRX reports are under `TestResults/http-pipeline/`.
+- Follow-up verification: reproduced the POST/PUT bug with 4 failing tests before fixing it. Latest run has 57 pipeline + 25 existing codec/ownership/multipart/security cases passing; 10/18 cookie cases pass and 8 expose the builder issue. Reports are under `TestResults/post-put-cookies/`.
+- Cookie-builder completion: the preceding eight cookie failures are resolved. Targeted cookie tests: 36/36 passed; full selected suite: 118/118 passed, 0 failed/skipped. Solution build passed with 0 warnings/errors. Reports are under `TestResults/cookie-builder/`.
 
 ## Open issues and recommended next step
 
-- Execute restore, build, and local codec, ownership, and multipart regression tests when authorized.
+- No known failures remain in the selected local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
+- Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
+- POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.

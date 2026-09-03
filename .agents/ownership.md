@@ -18,4 +18,4 @@ Restling now distinguishes borrowed resources from resources that it owns. This 
 
 ## Verification state
 
-Ownership regression tests have been added, but restore, build, and test execution remain deferred at the user's request.
+After user authorization on 2026-09-02, restore/build succeeded and all 7 ownership regression tests passed on net10.0. See `test-verification.md`.

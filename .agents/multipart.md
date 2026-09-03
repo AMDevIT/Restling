@@ -15,4 +15,4 @@
 
 ## Verification state
 
-Deterministic tests cover sending, codec-backed parts, nesting, related roots, duplicates, and mixed-replace streaming. Restore, build, and tests remain intentionally deferred.
+Deterministic tests cover sending, codec-backed parts, nesting, related roots, duplicates, and mixed-replace streaming. After user authorization on 2026-09-02, restore/build succeeded and all 6 multipart tests passed on net10.0. Additional streaming lifecycle cases passed in the pipeline suites. See `test-verification.md`.
