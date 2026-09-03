@@ -98,7 +98,25 @@ The address must be an absolute HTTP, HTTPS, SOCKS4, SOCKS4a, or SOCKS5 URI cont
 
 Configure before the first request. `AddProxy` works before or after `AddHandler` and `ConfigureHandler`; later callback changes are retained by `Build`. A replacement native handler receives the last `AddProxy` selection. Custom/delegating handlers require explicit transport configuration and are rejected by this method. Existing custom builder implementations remain compatible through a default interface implementation that throws `NotSupportedException`.
 
-Proxy selection applies to the whole context. Per-request overrides are not provided: use separate contexts/handlers for another proxy or direct connections (`UseProxy = false`). Existing defaults remain unchanged when `AddProxy` is not used.
+`AddProxy` selects the context-wide default. Individual requests can override it without mutating the active context handler. Existing defaults remain unchanged when neither setting is used.
+
+#### Per-request proxy override
+
+All `RestRequest` types can override the context route:
+
+```csharp
+RestRequest request = new("https://api.example.com/status", HttpMethod.Get)
+{
+    ProxyOptions = RequestProxyOptions.Custom("http://another-proxy.example.com:8080",
+                                              allowAutoRedirect: true)
+};
+
+RestRequestResult result = await client.ExecuteRequestAsync(request);
+```
+
+Use `RequestProxyOptions.Default` to retain the context transport, `Direct()` to disable explicit and system proxies, or `Custom(proxyUri)` for a dedicated proxy. Proxy and redirect combinations reuse isolated connection pools. Alternative transports share the context cookie jar, copy the default client's settings, and are disposed with the context. This applies to ordinary, raw, form-urlencoded, multipart, and mixed-replace streaming requests.
+
+The default builder creates suitable alternative native handlers automatically. A supplied handler or one customized through `ConfigureHandler` cannot be cloned safely, so register `AddRequestHandlerFactory(cookieContainer => ...)` when overrides are required. Factory-created handlers are owned by the context; Restling applies routing, redirect, and shared-cookie settings. A factory may seed `Proxy.Credentials`, which Restling retains when selecting the request proxy. Default routing remains available without a factory, while an attempted override fails explicitly.
 
 ### Example 2: Advanced customization
 

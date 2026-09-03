@@ -37,4 +37,4 @@ Implemented the approved `HttpClientContextBuilder.AddProxy(string proxyUri, boo
 
 ## Remaining scope
 
-No per-request proxy routing. HTTPS CONNECT/TLS proxy and SOCKS handshakes, proxy authentication exchanges, httpbin integration tests, other runtime versions, and mobile/platform-specific handlers were not exercised. Configuration tests do not establish those transport integrations work on every platform.
+Per-request proxy routing was implemented in the subsequent `request-proxy.md` step. HTTPS CONNECT/TLS proxy and SOCKS handshakes, proxy authentication exchanges, httpbin integration tests, other runtime versions, and mobile/platform-specific handlers were not exercised. Configuration tests do not establish those transport integrations work on every platform.

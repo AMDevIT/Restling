@@ -147,7 +147,42 @@ Use an absolute `http`, `https`, `socks4`, `socks4a`, or `socks5` URI with a hos
 
 Call `AddProxy` before sending requests. It works before or after `AddHandler` and `ConfigureHandler`; a later `ConfigureHandler` callback can override its settings, and `Build` does not reset them. Replacing the native handler applies the last `AddProxy` selection. Opaque custom/delegating handlers throw `NotSupportedException` instead of silently ignoring the proxy. Without `AddProxy`, existing transport defaults are unchanged.
 
-Proxy selection is context-wide, not per request. For direct connections (`UseProxy = false`) or a different proxy, use separately configured contexts/handlers; do not mutate a shared active handler.
+`AddProxy` selects the context-wide default. Individual `RestRequest` instances can override it without mutating the shared active handler, as described below.
+
+### Per-request proxy override
+
+Every `RestRequest`, including raw, form-urlencoded, multipart, and mixed-replace streaming requests, can select a route independently:
+
+```csharp
+RestRequest directRequest = new("https://api.example.com/status", HttpMethod.Get)
+{
+    ProxyOptions = RequestProxyOptions.Direct(allowAutoRedirect: false)
+};
+
+RestRequest proxiedRequest = new("https://api.example.com/status", HttpMethod.Get)
+{
+    ProxyOptions = RequestProxyOptions.Custom("http://another-proxy.example.com:8080",
+                                              allowAutoRedirect: true)
+};
+
+RestRequestResult directResult = await client.ExecuteRequestAsync(directRequest);
+RestRequestResult proxiedResult = await client.ExecuteRequestAsync(proxiedRequest);
+```
+
+`RequestProxyOptions.Default` (the initial value) uses the context transport unchanged. `Direct` disables both explicit and system proxies. `Custom` uses its dedicated proxy. Equivalent selections reuse one connection pool, while different proxy or redirect settings remain isolated. Alternative transports share the context cookie container and copy its `HttpClient` defaults; the context owns and disposes them.
+
+The default builder supplies alternative native handlers automatically. When an external handler or `ConfigureHandler` is used, provide an explicit factory so Restling does not guess how to clone TLS, certificate, pooling, or platform-specific settings:
+
+```csharp
+builder.AddHandler(sharedHandler)
+       .AddRequestHandlerFactory(cookieContainer => new SocketsHttpHandler
+       {
+           CookieContainer = cookieContainer,
+           PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+       });
+```
+
+The factory creates fresh handlers owned by the context. Restling applies the selected proxy, redirect policy, and shared cookie container after creation. To provide proxy credentials, initialize `Proxy.Credentials` in the factory; the credentials are transferred to the request-selected proxy address. Without a factory, default requests still work, while a `Direct` or `Custom` override returns a `NotSupportedException` failure. Buffered requests retain result-based transport failures; streaming transport failures continue to throw.
 
 ## Ownership and disposal
 

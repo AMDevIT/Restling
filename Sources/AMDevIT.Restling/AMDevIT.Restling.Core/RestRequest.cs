@@ -65,6 +65,9 @@ namespace AMDevIT.Restling.Core
 
         public RequestHeaders Headers => this.headers;
 
+        /// <summary>Gets or sets the transport override used only for this request.</summary>
+        public RequestProxyOptions ProxyOptions { get; set; } = RequestProxyOptions.Default;
+
         #endregion
 
         #region .ctor

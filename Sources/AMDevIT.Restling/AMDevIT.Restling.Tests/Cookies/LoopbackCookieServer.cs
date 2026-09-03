@@ -39,9 +39,16 @@ namespace AMDevIT.Restling.Tests.Cookies
         /// <summary>Builds a small response with separate header lines and a known body length.</summary>
         public static string Response(int statusCode, params string[] headers)
         {
+            return ResponseWithBody(statusCode, "ok", "text/plain; charset=utf-8", headers);
+        }
+
+        /// <summary>Builds a small response with a caller-provided body and content type.</summary>
+        public static string ResponseWithBody(int statusCode, string body, string contentType, params string[] headers)
+        {
+            byte[] bodyBytes = Encoding.UTF8.GetBytes(body);
             return $"HTTP/1.1 {statusCode} Test\r\n" +
                    string.Concat(headers.Select(header => header + "\r\n")) +
-                   "Content-Type: text/plain; charset=utf-8\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok";
+                   $"Content-Type: {contentType}\r\nContent-Length: {bodyBytes.Length}\r\nConnection: close\r\n\r\n{body}";
         }
 
         /// <summary>Cancels pending accepts and closes the listener even when a test fails early.</summary>

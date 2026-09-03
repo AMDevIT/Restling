@@ -122,7 +122,7 @@ namespace AMDevIT.Restling.Core
             ArgumentNullException.ThrowIfNull(httpClientContext);
             this.httpClientContext = httpClientContext;
             this.logger = logger;
-            this.httpExecutionPipeline = new(httpClientContext.HttpClient, httpClientContext.Codecs, logger);
+            this.httpExecutionPipeline = new(httpClientContext.ResolveHttpClient, httpClientContext.Codecs, logger);
             this.ContextOwnership = contextOwnership;
         }
 
@@ -693,7 +693,9 @@ namespace AMDevIT.Restling.Core
             options.Validate();
 
             using (httpRequest = this.BuildHttpRequestMessage(restRequest))
-            using (HttpResponseLease lease = await this.httpExecutionPipeline.SendStreamingAsync(httpRequest, cancellationToken))
+            using (HttpResponseLease lease = await this.httpExecutionPipeline.SendStreamingAsync(restRequest,
+                                                                                                  httpRequest,
+                                                                                                  cancellationToken))
             {
                 HttpResponseMessage response = lease.Response;
                 response.EnsureSuccessStatusCode();

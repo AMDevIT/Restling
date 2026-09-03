@@ -10,7 +10,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
     {
         #region Fields
 
-        private readonly HttpClient httpClient;
+        private readonly Func<RequestProxyOptions?, HttpClient> httpClientResolver;
         private readonly ContentCodecRegistry codecs;
         private readonly ILogger? logger;
 
@@ -19,9 +19,11 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
         #region .ctor
 
         /// <summary>Creates a pipeline borrowing its transport and immutable codec registry.</summary>
-        public HttpExecutionPipeline(HttpClient httpClient, ContentCodecRegistry codecs, ILogger? logger)
+        public HttpExecutionPipeline(Func<RequestProxyOptions?, HttpClient> httpClientResolver,
+                                     ContentCodecRegistry codecs,
+                                     ILogger? logger)
         {
-            this.httpClient = httpClient;
+            this.httpClientResolver = httpClientResolver;
             this.codecs = codecs;
             this.logger = logger;
         }
@@ -35,7 +37,8 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
                                                     HttpRequestMessage httpRequest,
                                                     CancellationToken cancellationToken)
         {
-            return this.ExecuteCoreAsync(httpRequest,
+            return this.ExecuteCoreAsync(restRequest,
+                                         httpRequest,
                                          (parser, response, elapsed, token) => parser.DecodeAsync(response,
                                                                                                   restRequest,
                                                                                                   elapsed,
@@ -50,7 +53,8 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
                                                           PayloadJsonSerializerLibrary? serializerLibrary,
                                                           CancellationToken cancellationToken)
         {
-            return this.ExecuteCoreAsync(httpRequest,
+            return this.ExecuteCoreAsync(restRequest,
+                                         httpRequest,
                                          (parser, response, elapsed, token) => parser.DecodeAsync<T>(response,
                                                                                                      restRequest,
                                                                                                      elapsed,
@@ -84,7 +88,8 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
         }
 
         /// <summary>Sends without buffering and transfers response ownership to a streaming lease.</summary>
-        public async Task<HttpResponseLease> SendStreamingAsync(HttpRequestMessage httpRequest,
+        public async Task<HttpResponseLease> SendStreamingAsync(RestRequest restRequest,
+                                                                HttpRequestMessage httpRequest,
                                                                 CancellationToken cancellationToken)
         {
             HttpResponseMessage? response = null;
@@ -94,9 +99,10 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
             {
                 this.LogStart(httpRequest);
                 stopwatch.Start();
-                response = await this.httpClient.SendAsync(httpRequest,
-                                                           HttpCompletionOption.ResponseHeadersRead,
-                                                           cancellationToken);
+                HttpClient httpClient = this.httpClientResolver(restRequest.ProxyOptions);
+                response = await httpClient.SendAsync(httpRequest,
+                                                      HttpCompletionOption.ResponseHeadersRead,
+                                                      cancellationToken);
                 stopwatch.Stop();
                 this.LogCompleted(httpRequest, stopwatch.Elapsed);
                 return new HttpResponseLease(response, stopwatch.Elapsed);
@@ -146,7 +152,8 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
         }
 
         /// <summary>Measures buffered transport time, retains send failures and always releases responses.</summary>
-        private async Task<TResult> ExecuteCoreAsync<TResult>(HttpRequestMessage httpRequest,
+        private async Task<TResult> ExecuteCoreAsync<TResult>(RestRequest restRequest,
+                                                              HttpRequestMessage httpRequest,
                                                               Func<HttpResponseParser, HttpResponseMessage, TimeSpan, CancellationToken, Task<TResult>> decoder,
                                                               Func<Exception, TimeSpan, TResult> failureFactory,
                                                               CancellationToken cancellationToken)
@@ -158,7 +165,8 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
             {
                 this.LogStart(httpRequest);
                 stopwatch.Start();
-                response = await this.httpClient.SendAsync(httpRequest, cancellationToken);
+                HttpClient httpClient = this.httpClientResolver(restRequest.ProxyOptions);
+                response = await httpClient.SendAsync(httpRequest, cancellationToken);
                 stopwatch.Stop();
                 this.LogCompleted(httpRequest, stopwatch.Elapsed);
             }

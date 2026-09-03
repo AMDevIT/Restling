@@ -12,6 +12,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
         private readonly HttpMessageHandler httpMessageHandler;
         private readonly CookieContainer cookieContainer;
         private readonly HttpClientContextOwnership ownership;
+        private readonly RequestTransportPool requestTransports;
         private bool disposedValue;
 
         #endregion
@@ -45,6 +46,21 @@ namespace AMDevIT.Restling.Core.Network.Builders
                                  HttpMessageHandler httpMessageHandler,
                                  CookieContainer cookieContainer,
                                  HttpClientContextOwnership ownership)
+            : this(httpClient, httpMessageHandler, cookieContainer, ownership, null)
+        {
+        }
+
+        /// <summary>Creates a context with explicit ownership and an optional factory for per-request proxy transports.</summary>
+        /// <param name="httpClient">The default client used when a request has no transport override.</param>
+        /// <param name="httpMessageHandler">The handler associated with the default client.</param>
+        /// <param name="cookieContainer">The cookie jar shared by alternative transports.</param>
+        /// <param name="ownership">The ownership of default transport resources.</param>
+        /// <param name="requestHandlerFactory">An optional factory producing fresh, context-owned native handlers.</param>
+        public HttpClientContext(HttpClient httpClient,
+                                 HttpMessageHandler httpMessageHandler,
+                                 CookieContainer cookieContainer,
+                                 HttpClientContextOwnership ownership,
+                                 Func<CookieContainer, HttpMessageHandler>? requestHandlerFactory)
         {
             ArgumentNullException.ThrowIfNull(httpClient);
             ArgumentNullException.ThrowIfNull(httpMessageHandler);
@@ -56,6 +72,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
             this.httpMessageHandler = httpMessageHandler;
             this.cookieContainer = cookieContainer;
             this.ownership = ownership;
+            this.requestTransports = new RequestTransportPool(httpClient, cookieContainer, requestHandlerFactory);
         }
 
         #endregion
@@ -69,6 +86,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>Resolves the reusable transport selected for an individual request.</summary>
+        internal HttpClient ResolveHttpClient(RequestProxyOptions? options)
+        {
+            return this.requestTransports.Resolve(options);
+        }
+
         /// <summary>Releases resources owned by the context.</summary>
         protected virtual void Dispose(bool disposing)
         {
@@ -76,6 +99,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
             {
                 if (disposing)
                 {
+                    this.requestTransports.Dispose();
                     if (this.Ownership.HasFlag(HttpClientContextOwnership.HttpClient))
                     {
                         try

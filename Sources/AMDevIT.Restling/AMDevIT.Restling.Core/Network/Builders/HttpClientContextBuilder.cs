@@ -1,6 +1,7 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
 using AMDevIT.Restling.Core.Codecs;
+using AMDevIT.Restling.Core.Network;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -32,6 +33,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
         private ContentCodecRegistry codecs = new();
         private WebProxy? proxy;
         private bool allowAutoRedirect;
+        private Func<CookieContainer, HttpMessageHandler>? requestHandlerFactory;
+        private bool usesDefaultRequestHandlerFactory;
 
         #endregion
 
@@ -131,6 +134,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
             this.httpMessageHandler = handler;
             this.handlerOwnership = ownership;
+            this.usesDefaultRequestHandlerFactory = false;
             this.ResolveCookieContainer(enableCookies: true);
 
             return this;
@@ -150,6 +154,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
             }
 
             configureHandler(this.httpMessageHandler);
+            this.usesDefaultRequestHandlerFactory = false;
             return this;
         }
 
@@ -163,22 +168,26 @@ namespace AMDevIT.Restling.Core.Network.Builders
         /// <remarks>Configure before sending requests. Credentials can be set through ConfigureHandler. Later ConfigureHandler changes are retained by Build.</remarks>
         public HttpClientContextBuilder AddProxy(string proxyUri, bool allowAutoRedirect)
         {
-            Uri? address;
+            Uri address;
             WebProxy selectedProxy;
 
-            ArgumentException.ThrowIfNullOrWhiteSpace(proxyUri);
-            if (!Uri.TryCreate(proxyUri, UriKind.Absolute, out address) ||
-                string.IsNullOrEmpty(address.Host) ||
-                address.Scheme is not ("http" or "https" or "socks4" or "socks4a" or "socks5") ||
-                address.UserInfo.Length != 0 || address.Query.Length != 0 || address.Fragment.Length != 0 ||
-                (address.AbsolutePath.Length != 0 && address.AbsolutePath != "/"))
-                throw new ArgumentException("Specify an absolute HTTP, HTTPS, or SOCKS proxy URI containing only a host and optional port. Configure credentials through ConfigureHandler.", nameof(proxyUri));
-
+            address = ProxyUriParser.Parse(proxyUri);
             selectedProxy = new WebProxy(address);
             if (this.httpMessageHandler != null)
                 ApplyProxy(this.httpMessageHandler, selectedProxy, allowAutoRedirect);
             this.proxy = selectedProxy;
             this.allowAutoRedirect = allowAutoRedirect;
+            return this;
+        }
+
+        /// <summary>Registers a factory for transports used by Direct and Custom per-request proxy overrides.</summary>
+        /// <param name="handlerFactory">Creates a fresh handler and receives the context's shared cookie container.</param>
+        /// <returns>The current builder instance.</returns>
+        /// <remarks>The generated handlers are owned by the context. The factory must return a directly supported native handler.</remarks>
+        public HttpClientContextBuilder AddRequestHandlerFactory(Func<CookieContainer, HttpMessageHandler> handlerFactory)
+        {
+            ArgumentNullException.ThrowIfNull(handlerFactory);
+            this.requestHandlerFactory = handlerFactory;
             return this;
         }
 
@@ -273,6 +282,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 };
                 this.httpMessageHandler = socketsHttpHandler;
                 this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
+                this.usesDefaultRequestHandlerFactory = true;
                 if (this.proxy != null)
                     ApplyProxy(this.httpMessageHandler, this.proxy, this.allowAutoRedirect);
             }
@@ -313,12 +323,24 @@ namespace AMDevIT.Restling.Core.Network.Builders
             httpClientContext = new(httpClient,
                                     this.httpMessageHandler,
                                     effectiveCookieContainer,
-                                    ownership)
+                                    ownership,
+                                    this.requestHandlerFactory ?? (this.usesDefaultRequestHandlerFactory ? CreateDefaultRequestHandler : null))
             {
                 Codecs = this.codecs
             };
 
             return httpClientContext;
+        }
+
+        /// <summary>Creates the native baseline used by per-request proxy overrides for a default builder.</summary>
+        private static HttpMessageHandler CreateDefaultRequestHandler(CookieContainer cookieContainer)
+        {
+            return new SocketsHttpHandler
+            {
+                CookieContainer = cookieContainer,
+                UseCookies = true,
+                AllowAutoRedirect = false
+            };
         }
 
         /// <summary>Applies explicit proxy settings without replacing the handler or its cookie container.</summary>

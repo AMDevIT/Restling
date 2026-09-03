@@ -73,6 +73,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
             throw new NotSupportedException("This builder does not support proxy configuration. Configure its transport handler explicitly.");
         }
 
+        /// <summary>Registers a handler factory for per-request proxy overrides when supported by the builder.</summary>
+        HttpClientContextBuilder AddRequestHandlerFactory(Func<CookieContainer, HttpMessageHandler> handlerFactory)
+        {
+            throw new NotSupportedException("This builder does not support per-request transport factories.");
+        }
+
         #endregion
 
         #region Http parameters
