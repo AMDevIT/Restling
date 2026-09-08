@@ -122,7 +122,10 @@ namespace AMDevIT.Restling.Core
             ArgumentNullException.ThrowIfNull(httpClientContext);
             this.httpClientContext = httpClientContext;
             this.logger = logger;
-            this.httpExecutionPipeline = new(httpClientContext.ResolveHttpClient, httpClientContext.Codecs, logger);
+            this.httpExecutionPipeline = new(httpClientContext.ResolveHttpClient,
+                                              httpClientContext.InvalidateHttpClient,
+                                              httpClientContext.Codecs,
+                                              logger);
             this.ContextOwnership = contextOwnership;
         }
 

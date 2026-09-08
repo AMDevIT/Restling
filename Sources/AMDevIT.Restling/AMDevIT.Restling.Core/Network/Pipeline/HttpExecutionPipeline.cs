@@ -11,6 +11,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
         #region Fields
 
         private readonly Func<RequestProxyOptions?, HttpClient> httpClientResolver;
+        private readonly Action<RequestProxyOptions?, HttpClient> httpClientInvalidator;
         private readonly ContentCodecRegistry codecs;
         private readonly ILogger? logger;
 
@@ -20,10 +21,12 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
 
         /// <summary>Creates a pipeline borrowing its transport and immutable codec registry.</summary>
         public HttpExecutionPipeline(Func<RequestProxyOptions?, HttpClient> httpClientResolver,
+                                     Action<RequestProxyOptions?, HttpClient> httpClientInvalidator,
                                      ContentCodecRegistry codecs,
                                      ILogger? logger)
         {
             this.httpClientResolver = httpClientResolver;
+            this.httpClientInvalidator = httpClientInvalidator;
             this.codecs = codecs;
             this.logger = logger;
         }
@@ -92,6 +95,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
                                                                 HttpRequestMessage httpRequest,
                                                                 CancellationToken cancellationToken)
         {
+            HttpClient? httpClient = null;
             HttpResponseMessage? response = null;
             Stopwatch stopwatch = new();
 
@@ -99,7 +103,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
             {
                 this.LogStart(httpRequest);
                 stopwatch.Start();
-                HttpClient httpClient = this.httpClientResolver(restRequest.ProxyOptions);
+                httpClient = this.httpClientResolver(restRequest.ProxyOptions);
                 response = await httpClient.SendAsync(httpRequest,
                                                       HttpCompletionOption.ResponseHeadersRead,
                                                       cancellationToken);
@@ -111,6 +115,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
             {
                 stopwatch.Stop();
                 this.DisposeResponse(response);
+                this.InvalidatePrematureResponseTransport(restRequest.ProxyOptions, httpClient, exception);
                 this.LogFailure(httpRequest, exception);
                 throw;
             }
@@ -158,6 +163,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
                                                               Func<Exception, TimeSpan, TResult> failureFactory,
                                                               CancellationToken cancellationToken)
         {
+            HttpClient? httpClient = null;
             HttpResponseMessage? response = null;
             Stopwatch stopwatch = new();
 
@@ -165,7 +171,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
             {
                 this.LogStart(httpRequest);
                 stopwatch.Start();
-                HttpClient httpClient = this.httpClientResolver(restRequest.ProxyOptions);
+                httpClient = this.httpClientResolver(restRequest.ProxyOptions);
                 response = await httpClient.SendAsync(httpRequest, cancellationToken);
                 stopwatch.Stop();
                 this.LogCompleted(httpRequest, stopwatch.Elapsed);
@@ -174,6 +180,7 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
             {
                 stopwatch.Stop();
                 this.DisposeResponse(response);
+                this.InvalidatePrematureResponseTransport(restRequest.ProxyOptions, httpClient, exception);
                 this.LogFailure(httpRequest, exception);
                 return failureFactory(exception, stopwatch.Elapsed);
             }
@@ -186,6 +193,34 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
             finally
             {
                 this.DisposeResponse(response);
+            }
+        }
+
+        /// <summary>Evicts a request-specific transport whose response framing ended prematurely.</summary>
+        private void InvalidatePrematureResponseTransport(RequestProxyOptions? options,
+                                                          HttpClient? httpClient,
+                                                          Exception exception)
+        {
+            Exception? currentException = exception;
+
+            if (httpClient == null)
+                return;
+            while (currentException != null)
+            {
+                if (currentException is HttpIOException httpException &&
+                    httpException.HttpRequestError == HttpRequestError.ResponseEnded)
+                {
+                    try
+                    {
+                        this.httpClientInvalidator(options, httpClient);
+                    }
+                    catch (Exception invalidationException)
+                    {
+                        this.logger?.LogTrace(invalidationException, "Cannot invalidate the failed request transport.");
+                    }
+                    return;
+                }
+                currentException = currentException.InnerException;
             }
         }
 

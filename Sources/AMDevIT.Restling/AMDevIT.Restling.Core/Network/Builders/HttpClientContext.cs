@@ -92,6 +92,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
             return this.requestTransports.Resolve(options);
         }
 
+        /// <summary>Invalidates a failed request-specific transport without affecting the default client.</summary>
+        internal void InvalidateHttpClient(RequestProxyOptions? options, HttpClient failedClient)
+        {
+            this.requestTransports.Invalidate(options, failedClient);
+        }
+
         /// <summary>Releases resources owned by the context.</summary>
         protected virtual void Dispose(bool disposing)
         {

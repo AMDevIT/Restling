@@ -2,7 +2,7 @@
 ## Objective and status
 
 - Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, and centralized HTTP execution with historical-behavior regression tests.
-- Status: explicit context and per-request proxy configuration, including all direct-method overloads, is implemented and verified alongside the earlier work. The selected local regression now has 178 passing tests on net10.0.
+- Status: explicit context and per-request proxy configuration, including all direct-method overloads, is implemented and verified alongside the earlier work. Recovery from request-specific `ResponseEnded` failures is now implemented with a pending regression test; build and test execution for this follow-up were deferred at the user's request.
 
 ## Decisions made
 
@@ -26,6 +26,7 @@
 - AddProxy(string proxyUri, bool allowAutoRedirect) configures directly supported native handlers, enables the context's explicit proxy, and selects HTTP redirect behavior while preserving cookies/ownership. It supports handler registration in either order; later ConfigureHandler changes remain authoritative for that handler. Custom/delegating default handlers are rejected by AddProxy; request-level alternatives use an explicit factory when needed.
 - RestRequest.ProxyOptions now selects Default, Direct, or Custom routing per request. Alternative transports are cached by immutable proxy/redirect selection, share the context CookieContainer, copy HttpClient defaults, and are owned by the context. Default builders supply a factory; externally supplied/configured handlers require AddRequestHandlerFactory rather than unsafe cloning.
 - All 16 direct GET/POST/PUT/DELETE variants expose RequestProxyOptions before the final CancellationToken. Serializer parameters precede it to avoid ambiguity with existing positional null calls; IRestlingClient default bodies preserve compatibility for external implementations.
+- A request-specific transport that fails with `HttpRequestError.ResponseEnded` is evicted and disposed only if it is still the cached instance. The default client remains untouched, and the caller's next retry creates a fresh native handler, connection pool, and SOCKS tunnel.
 
 ## Affected files
 
@@ -43,6 +44,7 @@
 - Added AddProxy to the builder/interface, 43 ProxyBuilderTests cases, proxy sections in both READMEs, and `.agents/proxy-builder.md`.
 - Added request routing models/pool, integrated transport selection into the centralized buffered/streaming pipeline, added 16 RequestProxyOverrideTests cases, documented usage, and recorded `.agents/request-proxy.md`.
 - Added direct proxy overloads to RestlingClient/IRestlingClient and an aggregate test that invokes all 16 signatures and verifies CancellationToken is last.
+- Added targeted `ResponseEnded` recovery across the request transport pool and HTTP pipeline, plus a deterministic loopback regression. See `.agents/response-ended-recovery.md`.
 
 ## Checks performed
 
@@ -63,11 +65,13 @@
 - Per-request proxy completion: after the user pulled two upstream commits, fetch confirmed alignment. Restore succeeded; the final build passed across Core/CSV net8/net9/net10 and tests net10 with 0 warnings/errors. An intermediate test-triggered build emitted one generated MSTest CS8892 warning, absent from the final build. Targeted proxy tests passed 59/59 and the selected regression passed 177/177. Reports are under `TestResults/request-proxy/`; git diff --check passed.
 - Direct-overload follow-up: the 60 proxy tests and all 178 selected regression tests passed. Every new signature was exercised through IRestlingClient; reports are in TestResults/request-proxy/.
 - Follow-up multi-target build passed with 0 errors; the only warning was the previously observed CS8892 in generated MSTest entry-point code.
+- `ResponseEnded` recovery follow-up: fetched the remote and confirmed the clean branch was aligned with its upstream before editing. The resulting targeted diff was inspected. No restore, build, or tests were run at the user's request.
 
 ## Open issues and recommended next step
 
 - No known failures remain in the selected local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
 - Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
+- The new `ResponseEndedInvalidatesAlternativeTransport` regression and related proxy suites remain pending execution.
 - POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.
 - Per-request direct/custom proxy selection and convenience overloads are implemented. HTTPS CONNECT/TLS proxy, SOCKS handshakes, real proxy authentication exchanges, other runtime/platform executions, and bounded cache eviction remain untested/out of scope.

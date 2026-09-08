@@ -95,6 +95,43 @@ namespace AMDevIT.Restling.Tests
             Assert.AreEqual(2, factoryCalls);
         }
 
+        /// <summary>A truncated response evicts the failed alternative transport before the caller retries.</summary>
+        [TestMethod]
+        public async Task ResponseEndedInvalidatesAlternativeTransport()
+        {
+            int factoryCalls = 0;
+            string truncatedResponse = "HTTP/1.1 200 Test\r\nContent-Type: application/octet-stream\r\n" +
+                                       "Content-Length: 10\r\nConnection: close\r\n\r\nshort";
+            await using LoopbackCookieServer proxy = new(truncatedResponse, LoopbackCookieServer.Response(200));
+            using RecordingMessageHandler defaultHandler = new((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+            List<TrackingHttpClientHandler> alternativeHandlers = [];
+            HttpClientContextBuilder builder = new();
+            builder.AddHandler(defaultHandler).AddRequestHandlerFactory(cookies =>
+            {
+                TrackingHttpClientHandler handler = new() { CookieContainer = cookies };
+                factoryCalls++;
+                alternativeHandlers.Add(handler);
+                return handler;
+            });
+            using HttpClientContext context = builder.Build();
+            using RestlingClient client = new(context);
+            RequestProxyOptions options = RequestProxyOptions.Custom(proxy.BaseUri.AbsoluteUri);
+            RestRequest firstRequest = new("http://127.0.0.1:1/first", HttpMethod.Get) { ProxyOptions = options };
+            RestRequest secondRequest = new("http://127.0.0.1:1/second", HttpMethod.Get) { ProxyOptions = options };
+
+            RestRequestResult firstResult = await client.ExecuteRequestAsync(firstRequest);
+            RestRequestResult secondResult = await client.ExecuteRequestAsync(secondRequest);
+            await proxy.Requests;
+
+            Assert.IsFalse(firstResult.IsSuccessful);
+            Assert.IsInstanceOfType<HttpRequestException>(firstResult.Exception);
+            Assert.IsTrue(secondResult.IsSuccessful);
+            Assert.AreEqual(2, factoryCalls);
+            Assert.AreEqual(2, alternativeHandlers.Count);
+            Assert.IsTrue(alternativeHandlers[0].Disposed);
+            Assert.IsFalse(alternativeHandlers[1].Disposed);
+        }
+
         /// <summary>Each custom override independently controls automatic HTTP redirects.</summary>
         [TestMethod]
         [DataRow(false)]

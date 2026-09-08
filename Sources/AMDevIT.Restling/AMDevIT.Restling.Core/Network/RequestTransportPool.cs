@@ -50,6 +50,34 @@ namespace AMDevIT.Restling.Core.Network
             }
         }
 
+        /// <summary>Removes and disposes a failed alternative transport if it is still the cached instance.</summary>
+        public void Invalidate(RequestProxyOptions? options, HttpClient failedClient)
+        {
+            RequestProxyOptions selection = options ?? RequestProxyOptions.Default;
+            HttpClient? client = null;
+
+            ArgumentNullException.ThrowIfNull(failedClient);
+            if (selection.Mode == RequestProxyMode.Default)
+                return;
+            lock (this.clients)
+            {
+                if (this.clients.TryGetValue(selection, out HttpClient? cachedClient) &&
+                    ReferenceEquals(cachedClient, failedClient))
+                {
+                    this.clients.Remove(selection);
+                    client = cachedClient;
+                }
+            }
+
+            try
+            {
+                client?.Dispose();
+            }
+            catch (Exception)
+            {
+            }
+        }
+
         /// <summary>Disposes every alternative client and its owned handler.</summary>
         public void Dispose()
         {
