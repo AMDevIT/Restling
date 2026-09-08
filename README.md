@@ -372,7 +372,38 @@ builder.AddCookie(sessionCookie);
 RestlingClient client = new(builder);
 ```
 
-Restling also provides `CookieStorageProvider` for loading and saving cookies to a JSON file. Storage encryption is available by supplying an `ICookieStorageProviderEncrypter` implementation.
+`CookieStorageProvider` is primarily an in-memory cookie jar. It can optionally load and save a simple JSON file when the application explicitly calls `LoadAsync()` or `SaveAsync()`. This basic format is not intended to be a secure store and Restling never saves it automatically.
+
+Install `Restling.Storage.Json` when cookies require versioned, extensible persistence. `JsonCookieStorageProvider` can write plain JSON or an AES-256-GCM envelope whose random data-encryption key is protected by an application-supplied `IDataEncryptionKeyProtector`. Automatic persistence is enabled by default and coalesces cookie changes into one atomic flush every three seconds. `SaveAsync()` flushes immediately and disposing an owning client flushes pending changes during orderly shutdown.
+
+```csharp
+JsonCookieStorageOptions storageOptions = new()
+{
+    FilePath = cookieFilePath,
+    DataEncryptionKeyProtector = keyProtector
+};
+JsonCookieStorageProvider storage = new(storageOptions);
+HttpClientContextBuilder builder = new();
+builder.AddCookieStorageProvider(storage);
+using RestlingClient client = new(builder);
+```
+
+Install `Restling.Storage.Relational` to use the same cookie lifecycle with SQLite. `SqliteCookieStorageProvider` supports ordinary relational columns or application-layer encryption selected through `SqliteCookieEncryptionMode`. The encrypted mode stores an HMAC blind index and an AES-256-GCM payload, and requires the same external DEK-protector model as the advanced JSON provider. The database records its mode and rejects mismatched configuration; switching modes requires an explicit migration.
+
+```csharp
+SqliteCookieStorageOptions storageOptions = new()
+{
+    FilePath = cookieDatabasePath,
+    EncryptionMode = SqliteCookieEncryptionMode.Application,
+    DataEncryptionKeyProtector = keyProtector
+};
+SqliteCookieStorageProvider storage = new(storageOptions);
+HttpClientContextBuilder builder = new();
+builder.AddCookieStorageProvider(storage);
+using RestlingClient client = new(builder);
+```
+
+Application encryption is not whole-file SQLite encryption: schema, record count, approximate sizes, timestamps, deletion, and rollback remain observable. Keep the database protected by operating-system permissions and keep the key-encryption key outside it.
 
 ## Result handling
 

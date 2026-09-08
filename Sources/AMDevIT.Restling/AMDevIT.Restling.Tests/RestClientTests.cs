@@ -373,7 +373,7 @@ namespace AMDevIT.Restling.Tests
         }
 
         [TestMethod]
-        [DynamicData(nameof(GenerateDynamicDataForPostUrlEncoded), DynamicDataSourceType.Method)]        
+        [DynamicData(nameof(GenerateDynamicDataForPostUrlEncoded))]        
         public async Task PostFormUrlEncoded(string uri, IDictionary<string, string> parameters, bool useExecuteRequest = true)
         {
             CancellationToken cancellationToken = this.TestContext.CancellationTokenSource.Token;

@@ -12,6 +12,8 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
 
         private readonly Func<RequestProxyOptions?, HttpClient> httpClientResolver;
         private readonly Action<RequestProxyOptions?, HttpClient> httpClientInvalidator;
+        private readonly Func<CancellationToken, Task> cookieStorageLoader;
+        private readonly Action cookieChangeNotifier;
         private readonly ContentCodecRegistry codecs;
         private readonly ILogger? logger;
 
@@ -22,11 +24,15 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
         /// <summary>Creates a pipeline borrowing its transport and immutable codec registry.</summary>
         public HttpExecutionPipeline(Func<RequestProxyOptions?, HttpClient> httpClientResolver,
                                      Action<RequestProxyOptions?, HttpClient> httpClientInvalidator,
+                                     Func<CancellationToken, Task> cookieStorageLoader,
+                                     Action cookieChangeNotifier,
                                      ContentCodecRegistry codecs,
                                      ILogger? logger)
         {
             this.httpClientResolver = httpClientResolver;
             this.httpClientInvalidator = httpClientInvalidator;
+            this.cookieStorageLoader = cookieStorageLoader;
+            this.cookieChangeNotifier = cookieChangeNotifier;
             this.codecs = codecs;
             this.logger = logger;
         }
@@ -101,12 +107,14 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
 
             try
             {
+                await this.cookieStorageLoader(cancellationToken);
                 this.LogStart(httpRequest);
                 stopwatch.Start();
                 httpClient = this.httpClientResolver(restRequest.ProxyOptions);
                 response = await httpClient.SendAsync(httpRequest,
                                                       HttpCompletionOption.ResponseHeadersRead,
                                                       cancellationToken);
+                this.cookieChangeNotifier();
                 stopwatch.Stop();
                 this.LogCompleted(httpRequest, stopwatch.Elapsed);
                 return new HttpResponseLease(response, stopwatch.Elapsed);
@@ -169,10 +177,12 @@ namespace AMDevIT.Restling.Core.Network.Pipeline
 
             try
             {
+                await this.cookieStorageLoader(cancellationToken);
                 this.LogStart(httpRequest);
                 stopwatch.Start();
                 httpClient = this.httpClientResolver(restRequest.ProxyOptions);
                 response = await httpClient.SendAsync(httpRequest, cancellationToken);
+                this.cookieChangeNotifier();
                 stopwatch.Stop();
                 this.LogCompleted(httpRequest, stopwatch.Elapsed);
             }

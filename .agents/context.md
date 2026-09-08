@@ -1,8 +1,8 @@
 # Restling development context
 ## Objective and status
 
-- Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, and centralized HTTP execution with historical-behavior regression tests.
-- Status: explicit context and per-request proxy configuration, including all direct-method overloads, is implemented and verified alongside the earlier work. Recovery from request-specific `ResponseEnded` failures is now implemented with a pending regression test; build and test execution for this follow-up were deferred at the user's request.
+- Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, centralized HTTP execution, and pluggable cookie persistence.
+- Status: Core, advanced JSON, and plain/application-encrypted SQLite cookie storage are implemented with pending build/test verification. Recovery from request-specific `ResponseEnded` failures also retains its pending regression execution.
 
 ## Decisions made
 
@@ -27,6 +27,11 @@
 - RestRequest.ProxyOptions now selects Default, Direct, or Custom routing per request. Alternative transports are cached by immutable proxy/redirect selection, share the context CookieContainer, copy HttpClient defaults, and are owned by the context. Default builders supply a factory; externally supplied/configured handlers require AddRequestHandlerFactory rather than unsafe cloning.
 - All 16 direct GET/POST/PUT/DELETE variants expose RequestProxyOptions before the final CancellationToken. Serializer parameters precede it to avoid ambiguity with existing positional null calls; IRestlingClient default bodies preserve compatibility for external implementations.
 - A request-specific transport that fails with `HttpRequestError.ResponseEnded` is evicted and disposed only if it is still the cached instance. The default client remains untouched, and the caller's next retry creates a fresh native handler, connection pool, and SOCKS tunnel.
+- `ICookiesStorageProvider` is public and owns the live cookie jar. Core's `CookieStorageProvider` is primarily in-memory with explicit basic JSON persistence; Restling never automatically calls its `SaveAsync`.
+- An attached provider loads once before the first request and receives change notifications after HTTP responses. `Restling.Storage.Json` opts into those notifications by default, coalesces them for three seconds, skips unchanged snapshots, writes atomically, and flushes during orderly disposal.
+- Advanced encrypted JSON uses AES-256-GCM and a random DEK protected by an application-supplied external key protector. The JSON file never contains an unprotected DEK.
+- `SqliteCookieStorageProvider` supports an explicit plain relational mode and an application-encrypted mode in one provider. The database persists its exact mode and refuses implicit fallback or migration.
+- Encrypted SQLite rows use separately derived AES-256-GCM and HMAC-SHA-256 keys. The shared DEK-protector contract now lives in Core; the JSON namespace retains an obsolete compatibility interface.
 
 ## Affected files
 
@@ -45,6 +50,8 @@
 - Added request routing models/pool, integrated transport selection into the centralized buffered/streaming pipeline, added 16 RequestProxyOverrideTests cases, documented usage, and recorded `.agents/request-proxy.md`.
 - Added direct proxy overloads to RestlingClient/IRestlingClient and an aggregate test that invokes all 16 signatures and verifies CancellationToken is last.
 - Added targeted `ResponseEnded` recovery across the request transport pool and HTTP pipeline, plus a deterministic loopback regression. See `.agents/response-ended-recovery.md`.
+- Added public cookie storage integration, `Restling.Storage.Json`, the relational storage project placeholder, documentation, and persistence regression sources. See `.agents/cookie-storage-persistence.md`.
+- Implemented the relational SQLite provider, package documentation, and regression sources. See `.agents/sqlite-cookie-storage.md`.
 
 ## Checks performed
 
@@ -66,6 +73,8 @@
 - Direct-overload follow-up: the 60 proxy tests and all 178 selected regression tests passed. Every new signature was exercised through IRestlingClient; reports are in TestResults/request-proxy/.
 - Follow-up multi-target build passed with 0 errors; the only warning was the previously observed CS8892 in generated MSTest entry-point code.
 - `ResponseEnded` recovery follow-up: fetched the remote and confirmed the clean branch was aligned with its upstream before editing. The resulting targeted diff was inspected. No restore, build, or tests were run at the user's request.
+- Cookie persistence step: fetch confirmed `Task-CookiePersistence` started aligned with `origin/main`; new project XML and solution membership were checked, and `git diff --check` passed. Restore/build/tests remain unauthorized and were not run.
+- SQLite persistence step: fetched before editing; project XML parsing and `git diff --check` pass. Restore/build/tests remain unauthorized and were not run.
 
 ## Open issues and recommended next step
 
@@ -75,3 +84,5 @@
 - The new `ResponseEndedInvalidatesAlternativeTransport` regression and related proxy suites remain pending execution.
 - POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.
 - Per-request direct/custom proxy selection and convenience overloads are implemented. HTTPS CONNECT/TLS proxy, SOCKS handshakes, real proxy authentication exchanges, other runtime/platform executions, and bounded cache eviction remain untested/out of scope.
+- Cookie persistence requires authorized compilation and runtime regression execution. Direct external `CookieContainer` changes are detected at the next request notification, explicit save, or orderly dispose because `CookieContainer` exposes no mutation event.
+- SQLite mode migration, full-file encryption, rollback protection, key rotation, and multi-process coordination remain outside the current relational provider step.

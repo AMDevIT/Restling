@@ -1,5 +1,6 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
+using AMDevIT.Restling.Core.Cookies.Storage;
 using AMDevIT.Restling.Core.Codecs;
 using AMDevIT.Restling.Core.Network;
 using System.Net;
@@ -35,6 +36,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
         private bool allowAutoRedirect;
         private Func<CookieContainer, HttpMessageHandler>? requestHandlerFactory;
         private bool usesDefaultRequestHandlerFactory;
+        private ICookiesStorageProvider? cookieStorageProvider;
 
         #endregion
 
@@ -59,7 +61,20 @@ namespace AMDevIT.Restling.Core.Network.Builders
         public HttpClientContextBuilder AddCookieContainer(CookieContainer cookieContainer)
         {
             ArgumentNullException.ThrowIfNull(cookieContainer);
+            this.cookieStorageProvider = null;
             this.cookieContainer = cookieContainer;
+            this.ResolveCookieContainer(enableCookies: true);
+            return this;
+        }
+
+        /// <summary>Selects the cookie storage provider whose live container is shared with the HTTP transport.</summary>
+        /// <param name="cookieStorageProvider">The provider owned by the generated context.</param>
+        /// <returns>The current builder instance.</returns>
+        public HttpClientContextBuilder AddCookieStorageProvider(ICookiesStorageProvider cookieStorageProvider)
+        {
+            ArgumentNullException.ThrowIfNull(cookieStorageProvider);
+            this.cookieStorageProvider = cookieStorageProvider;
+            this.cookieContainer = cookieStorageProvider.CookieContainer;
             this.ResolveCookieContainer(enableCookies: true);
             return this;
         }
@@ -272,6 +287,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
             HttpClientContext httpClientContext;
             HttpClientContextOwnership ownership;
             CookieContainer effectiveCookieContainer;
+            ICookiesStorageProvider effectiveCookieStorageProvider;
 
             if (this.httpMessageHandler == null)
             {
@@ -288,6 +304,7 @@ namespace AMDevIT.Restling.Core.Network.Builders
             }
 
             effectiveCookieContainer = this.ResolveCookieContainer();
+            effectiveCookieStorageProvider = this.cookieStorageProvider ?? new CookieStorageProvider(effectiveCookieContainer);
 
             if (this.cookies.Count > 0)
             {
@@ -324,7 +341,8 @@ namespace AMDevIT.Restling.Core.Network.Builders
                                     this.httpMessageHandler,
                                     effectiveCookieContainer,
                                     ownership,
-                                    this.requestHandlerFactory ?? (this.usesDefaultRequestHandlerFactory ? CreateDefaultRequestHandler : null))
+                                    this.requestHandlerFactory ?? (this.usesDefaultRequestHandlerFactory ? CreateDefaultRequestHandler : null),
+                                    effectiveCookieStorageProvider)
             {
                 Codecs = this.codecs
             };

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<PackageId>Restling.Storage.Json</PackageId>
+		<Description>Versioned plain and encrypted JSON cookie persistence for Restling.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Title>Restling JSON Cookie Storage</Title>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\AMDevIT.Restling.Core\AMDevIT.Restling.Core.csproj" />
+		<None Include="..\..\..\Assets\Icons\RestlingIcon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+</Project>
