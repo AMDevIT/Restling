@@ -31,8 +31,8 @@
 		<Authors>Alessandro Morvillo</Authors>
 		<Company>AMDev.IT di Alessandro Morvillo</Company>
 		<Copyright>© 2025 Alessandro Morvillo</Copyright>
-		<VersionPrefix>1.55.0.0</VersionPrefix>
-		<VersionSuffix>alpha2</VersionSuffix>
+		<VersionPrefix>1.55.6.0</VersionPrefix>
+		<VersionSuffix>alpha3</VersionSuffix>
 		<AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 	</PropertyGroup>
