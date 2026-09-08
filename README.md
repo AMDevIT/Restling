@@ -352,6 +352,35 @@ RestRequest<ImportModel> request = new("https://api.example.com/import",
 
 CSV is supplied by the optional `Restling.Csv` project and is registered with `builder.AddCodec(new CsvContentCodec())`. RFC 9457 Problem Details is enabled with `builder.AddCodec(new ProblemDetailsJsonCodec())`; structured errors appear in `RestRequestResult.Problem`, while malformed problem documents appear in `ProblemException` without losing the HTTP response.
 
+## Status-based response data
+
+An explicit request can map different HTTP status codes to different response data types without requiring a common interface or changing the ordinary success type:
+
+```csharp
+RestRequest request = new("https://api.example.com/items/42", HttpMethod.Get);
+
+request.ResponseMappings
+       .ForStatus<BadRequestAnswer>(HttpStatusCode.BadRequest)
+       .ForClientErrors<ApiError>()
+       .ForServerErrors<ServerError>();
+
+RestRequestResult<ItemAnswer> result = await client.ExecuteRequestAsync<ItemAnswer>(request,
+                                                                                     cancellationToken: cancellationToken);
+
+if (result.TryGetMappedData(out BadRequestAnswer? badRequest))
+{
+    // Handle the response registered for status 400.
+}
+else if (result.Data != null)
+{
+    // Handle the ordinary response type.
+}
+```
+
+Mappings are opt-in and support an exact `HttpStatusCode`, an inclusive range through `ForRange<T>`, the standard HTTP status classes, all errors through `ForErrors<T>`, and an optional `Fallback<T>`. An exact status takes priority over every range; overlapping ranges use registration order; the fallback is considered last. Registering the same exact status again replaces its previous mapping.
+
+When a mapping matches, Restling decodes the body once into `MappedData` through the configured content codec and leaves `RestRequestResult<T>.Data` at its default value. `MappedDataType` identifies the selected registration, and `TryGetMappedData<T>` provides typed access. A decoding failure appears in `MappedDataException` without discarding the HTTP status, headers, raw body, or optional Problem Details metadata. Requests without a matching mapping retain their existing decoding behavior.
+
 ## Cookies
 
 Inject individual cookies or a complete `CookieContainer` through the builder:

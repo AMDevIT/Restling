@@ -17,6 +17,30 @@ The goal of Restling is to provide a flexible yet easy-to-use REST client API. W
 
 Restling decodes responses by media type. Add custom codecs through `HttpClientContextBuilder.AddCodec`. Existing typed request payloads remain JSON unless `RestRequest<T>.UseContentCodec` is enabled explicitly. RFC 9457 Problem Details is available through `ProblemDetailsJsonCodec`, while CSV is supplied by the optional `Restling.Csv` package.
 
+## Status-based response data
+
+Explicit requests can associate HTTP status codes with different response data types. No shared interface is required:
+
+```csharp
+RestRequest request = new("https://api.example.com/items/42", HttpMethod.Get);
+
+request.ResponseMappings
+       .ForStatus<BadRequestAnswer>(HttpStatusCode.BadRequest)
+       .ForClientErrors<ApiError>()
+       .ForServerErrors<ServerError>()
+       .Fallback<UnexpectedAnswer>();
+
+RestRequestResult<ItemAnswer> result = await client.ExecuteRequestAsync<ItemAnswer>(request,
+                                                                                     cancellationToken: cancellationToken);
+
+if (result.TryGetMappedData(out BadRequestAnswer? badRequest))
+{
+    // Handle status 400.
+}
+```
+
+Exact statuses take priority over range and status-class mappings. Overlapping ranges use registration order, and the fallback is evaluated last. A matched body is decoded once through the configured content codec and exposed as `MappedData`; ordinary `Data` remains at its default value. `MappedDataType` identifies the selected type, while `MappedDataException` preserves a decoding failure without losing status, headers, raw content, or Problem Details. With no matching mapping, response decoding is unchanged.
+
 ## Ownership and disposal
 
 Clients created with the default constructor or a builder own their generated context. Clients receiving an existing `HttpClientContext` borrow it by default. Use `RestlingClientContextOwnership` to select the behavior explicitly and `HttpClientContextOwnership` to control disposal of the underlying `HttpClient` and handler. `DisposeContext` remains a compatibility alias.
