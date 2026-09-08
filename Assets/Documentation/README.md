@@ -84,6 +84,8 @@ In the following example, we will instantiate a HttpClientContext using the Http
 
 This code will allow the Restling client to send and receive cookies when a method is executed, adding the app-version header and setting a new user-agent.
 
+`CookieStorageProvider` is primarily an in-memory provider. Its optional JSON file support is deliberately basic, runs only when the application explicitly calls `LoadAsync()` or `SaveAsync()`, and must not be treated as secure storage. Use the optional `Restling.Storage.Json` package for versioned JSON persistence, authenticated AES-256-GCM encryption, coalesced three-second auto-save, atomic replacement, and an orderly-shutdown flush.
+
 ### Explicit proxy
 
 ```csharp

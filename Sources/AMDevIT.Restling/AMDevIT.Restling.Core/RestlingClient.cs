@@ -124,6 +124,8 @@ namespace AMDevIT.Restling.Core
             this.logger = logger;
             this.httpExecutionPipeline = new(httpClientContext.ResolveHttpClient,
                                               httpClientContext.InvalidateHttpClient,
+                                              httpClientContext.EnsureCookieStorageLoadedAsync,
+                                              httpClientContext.NotifyCookiesChanged,
                                               httpClientContext.Codecs,
                                               logger);
             this.ContextOwnership = contextOwnership;

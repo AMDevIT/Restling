@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AMDevIT.Restling.Core\AMDevIT.Restling.Core.csproj" />
     <ProjectReference Include="..\AMDevIT.Restling.Csv\AMDevIT.Restling.Csv.csproj" />
+    <ProjectReference Include="..\AMDevIT.Restling.Storage.Json\AMDevIT.Restling.Storage.Json.csproj" />
   </ItemGroup>
 
   <ItemGroup>

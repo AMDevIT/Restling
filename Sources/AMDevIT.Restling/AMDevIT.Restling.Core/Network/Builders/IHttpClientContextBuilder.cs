@@ -1,5 +1,6 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
+using AMDevIT.Restling.Core.Cookies.Storage;
 using AMDevIT.Restling.Core.Codecs;
 using System.Net;
 using System.Net.Http.Headers;
@@ -26,6 +27,12 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         HttpClientContextBuilder AddCookie(HttpCookieData cookie);
         HttpClientContextBuilder AddCookieContainer(CookieContainer cookieContainer);
+
+        /// <summary>Selects a cookie storage provider when supported by the builder.</summary>
+        HttpClientContextBuilder AddCookieStorageProvider(ICookiesStorageProvider cookieStorageProvider)
+        {
+            throw new NotSupportedException("This builder does not support cookie storage providers.");
+        }
         HttpClientContextBuilder AddCookies(IEnumerable<HttpCookieData> cookies);
         HttpClientContextBuilder ClearCookieContainer();
         HttpClientContextBuilder ClearCookies();

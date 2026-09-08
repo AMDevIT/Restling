@@ -3,6 +3,7 @@ using AMDevIT.Restling.Core.Cookies;
 using AMDevIT.Restling.Core.Network;
 using AMDevIT.Restling.Core.Network.Builders;
 using AMDevIT.Restling.Tests.Cookies;
+using AMDevIT.Restling.Tests.Storage;
 using System.Net;
 using System.Text;
 
@@ -12,6 +13,28 @@ namespace AMDevIT.Restling.Tests
     public sealed class CookiePersistenceTests
     {
         #region Methods
+
+        /// <summary>The pipeline loads an attached provider once and reports each received response.</summary>
+        [TestMethod]
+        public async Task AttachedStorageIsLoadedAndNotifiedAsync()
+        {
+            TrackingCookieStorageProvider storage = new();
+            await using LoopbackCookieServer server = new(LoopbackCookieServer.Response(200,
+                                                                                        "Set-Cookie: persisted=yes; Path=/"));
+            HttpClientContextBuilder builder = new();
+            builder.AddCookieStorageProvider(storage)
+                   .ConfigureHandler(handler => ((SocketsHttpHandler)handler).UseProxy = false)
+                   .SetTimeout(TimeSpan.FromSeconds(10));
+            using HttpClientContext context = builder.Build();
+            using RestlingClient client = new(context);
+
+            RestRequestResult result = await client.GetAsync(server.BaseUri.AbsoluteUri);
+
+            Assert.IsTrue(result.IsSuccessful, result.Exception?.ToString());
+            Assert.AreEqual(1, storage.LoadCount);
+            Assert.AreEqual(1, storage.NotificationCount);
+            Assert.AreEqual("yes", storage.CookieContainer.GetCookies(server.BaseUri)["persisted"]?.Value);
+        }
 
         /// <summary>Verifies seeded and response cookies across POST/PUT calls and recreated clients.</summary>
         [TestMethod]

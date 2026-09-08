@@ -6,17 +6,17 @@ using System.Net;
 
 namespace AMDevIT.Restling.Core.Cookies.Storage
 {
-    public class CookieStorageProvider(string cookieStorageFilePath,
-                                       ILogger? logger = null,
-                                       ICookieStorageProviderEncrypter? encrypter = null)
-        : ICookiesStorageProvider
+    /// <summary>Provides an in-memory cookie jar with optional basic JSON file persistence.</summary>
+    /// <remarks>This provider is intended primarily for in-memory use. Its optional JSON storage is basic and is not a secure store.</remarks>
+    public class CookieStorageProvider : ICookiesStorageProvider
     {
         #region Fields
 
-        private readonly ILogger? logger = logger;
-        private readonly string cookieStorageFilePath = cookieStorageFilePath;
-        private readonly ICookieStorageProviderEncrypter? encrypter = encrypter;
+        private readonly ILogger? logger;
+        private readonly string? cookieStorageFilePath;
+        private readonly ICookieStorageProviderEncrypter? encrypter;
         private readonly HashSet<HttpCookieData> cookies = [];
+        private readonly CookieContainer cookieContainer;
 
         #endregion
 
@@ -28,16 +28,55 @@ namespace AMDevIT.Restling.Core.Cookies.Storage
             set;
         }
 
-        public string CookieStorageFilePath => this.cookieStorageFilePath;
+        public string? CookieStorageFilePath => this.cookieStorageFilePath;
+
+        /// <summary>Gets the live in-memory cookie jar.</summary>
+        public CookieContainer CookieContainer => this.cookieContainer;
 
         protected ILogger? Logger => this.logger;
 
         #endregion
 
+        #region .ctor
+
+        /// <summary>Creates an in-memory cookie provider without file persistence.</summary>
+        public CookieStorageProvider()
+            : this(new CookieContainer())
+        {
+        }
+
+        /// <summary>Creates an in-memory provider around an existing live cookie jar.</summary>
+        /// <param name="cookieContainer">The cookie container to expose.</param>
+        public CookieStorageProvider(CookieContainer cookieContainer)
+        {
+            ArgumentNullException.ThrowIfNull(cookieContainer);
+            this.cookieContainer = cookieContainer;
+        }
+
+        /// <summary>Creates an in-memory cookie provider with optional basic JSON file persistence.</summary>
+        /// <param name="cookieStorageFilePath">The JSON file used by explicit load and save operations.</param>
+        /// <param name="logger">An optional logger.</param>
+        /// <param name="encrypter">An optional legacy text encrypter.</param>
+        public CookieStorageProvider(string cookieStorageFilePath,
+                                     ILogger? logger = null,
+                                     ICookieStorageProviderEncrypter? encrypter = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(cookieStorageFilePath);
+            this.cookieContainer = new CookieContainer();
+            this.cookieStorageFilePath = cookieStorageFilePath;
+            this.logger = logger;
+            this.encrypter = encrypter;
+        }
+
+        #endregion
+
         #region Methods
 
+        /// <summary>Loads cookies from the configured basic JSON file.</summary>
         public async Task LoadAsync(CancellationToken cancellationToken = default)
         {
+            if (this.CookieStorageFilePath == null)
+                return;
             if (!File.Exists(this.CookieStorageFilePath))
                 throw new FileNotFoundException("Cannot find cookie storage file", this.CookieStorageFilePath);
 
@@ -70,14 +109,23 @@ namespace AMDevIT.Restling.Core.Cookies.Storage
                 this.Logger?.LogInformation("The cookie storage file is empty");
             }
         }
+        /// <summary>Saves cookies to the configured basic JSON file only when called explicitly.</summary>
         public async Task SaveAsync(CancellationToken cancellationToken = default)
         {
             string contentString;
             List<CookieSerializationItem> cookieSerializedItems = [];
 
-            foreach(HttpCookieData cookie in this.cookies)
+            if (this.CookieStorageFilePath == null)
+                return;
+
+            foreach (Cookie cookie in this.CookieContainer.GetAllCookies())
             {
-                CookieSerializationItem cookieSerializationItem = cookie.ToSerializationItem();
+                CookieSerializationItem cookieSerializationItem = new(cookie.Domain,
+                                                                       cookie.Path,
+                                                                       null,
+                                                                       cookie.Secure,
+                                                                       cookie.Name,
+                                                                       cookie.Value);
                 cookieSerializedItems.Add(cookieSerializationItem);
             }
 
@@ -94,37 +142,64 @@ namespace AMDevIT.Restling.Core.Cookies.Storage
             await fileWriter.WriteAsync(contentString.AsMemory(), cancellationToken);
         }
 
+        /// <summary>Adds or replaces a cookie in the live in-memory jar.</summary>
         public Task<bool> AddCookieAsync(HttpCookieData cookie, CancellationToken cancellationToken = default)
         {
+            Cookie newCookie;
+
+            ArgumentNullException.ThrowIfNull(cookie);
             if (this.cookies.TryGetValue(cookie, out HttpCookieData? existingCookie))
             {
                 this.cookies.Remove(existingCookie);
             }
             this.cookies.Add(cookie);
+            newCookie = new Cookie(cookie.Name, cookie.Value, cookie.Path ?? "/", cookie.Domain ?? string.Empty)
+            {
+                Secure = cookie.IsSecure ?? false
+            };
+            if (!string.IsNullOrWhiteSpace(cookie.Uri))
+                this.CookieContainer.Add(new Uri(cookie.Uri), newCookie);
+            else if (!string.IsNullOrWhiteSpace(cookie.Domain))
+                this.CookieContainer.Add(newCookie);
+            else
+                throw new ArgumentException("A cookie domain or URI is required.", nameof(cookie));
             return Task<bool>.FromResult(true);
         }
 
+        /// <summary>Removes a cookie from the live in-memory jar.</summary>
         public Task<bool> RemoveCookieAsync(HttpCookieData cookie, CancellationToken cancellationToken = default)
         {
+            bool removed = false;
+
+            ArgumentNullException.ThrowIfNull(cookie);
+            cancellationToken.ThrowIfCancellationRequested();
             if (this.cookies.TryGetValue(cookie, out HttpCookieData? existingCookie))
             {
                 this.cookies.Remove(existingCookie);
-                return Task<bool>.FromResult(true);
+                removed = true;
             }
-            return Task<bool>.FromResult(false);
+            if (!string.IsNullOrWhiteSpace(cookie.Uri) || !string.IsNullOrWhiteSpace(cookie.Domain))
+            {
+                Cookie expiredCookie = new(cookie.Name,
+                                           string.Empty,
+                                           cookie.Path ?? "/",
+                                           cookie.Domain ?? string.Empty)
+                {
+                    Expired = true
+                };
+                if (!string.IsNullOrWhiteSpace(cookie.Uri))
+                    this.CookieContainer.Add(new Uri(cookie.Uri), expiredCookie);
+                else
+                    this.CookieContainer.Add(expiredCookie);
+                removed = true;
+            }
+            return Task<bool>.FromResult(removed);
         }
 
+        /// <summary>Returns the live cookie container without creating a detached copy.</summary>
         public CookieContainer BuildCookieContainer()
         {
-            CookieContainer cookieContainer = new ();
-
-            foreach (HttpCookieData cookie in this.cookies)
-            {
-                Cookie newCookie = new Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain);
-                cookieContainer.Add(newCookie);
-            }
-
-            return cookieContainer;
+            return this.CookieContainer;
         }
 
         #endregion
