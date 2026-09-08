@@ -1,5 +1,6 @@
 using AMDevIT.Restling.Core.Cookies;
 using AMDevIT.Restling.Core.Cookies.Storage;
+using CoreDataEncryptionKeyProtector = AMDevIT.Restling.Core.Cookies.Storage.Security.IDataEncryptionKeyProtector;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -326,7 +327,7 @@ namespace AMDevIT.Restling.Storage.Json
         /// <summary>Encrypts a snapshot with a random nonce and a protected 256-bit DEK.</summary>
         private async Task<byte[]> EncryptAsync(byte[] plainContent, CancellationToken cancellationToken)
         {
-            IDataEncryptionKeyProtector protector = this.options.DataEncryptionKeyProtector!;
+            CoreDataEncryptionKeyProtector protector = this.options.DataEncryptionKeyProtector!;
             byte[] ciphertext = new byte[plainContent.Length];
             byte[] nonce = RandomNumberGenerator.GetBytes(NonceSize);
             byte[] tag = new byte[TagSize];
@@ -354,7 +355,7 @@ namespace AMDevIT.Restling.Storage.Json
         /// <summary>Unprotects the stored DEK and authenticates the encrypted snapshot.</summary>
         private async Task<byte[]> DecryptAsync(byte[] persistedContent, CancellationToken cancellationToken)
         {
-            IDataEncryptionKeyProtector protector = this.options.DataEncryptionKeyProtector!;
+            CoreDataEncryptionKeyProtector protector = this.options.DataEncryptionKeyProtector!;
             JsonCookieEnvelope? envelope = JsonSerializer.Deserialize<JsonCookieEnvelope>(persistedContent, serializerOptions);
             byte[] ciphertext;
             byte[] nonce;

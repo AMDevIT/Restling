@@ -15,13 +15,13 @@ Evolve cookie storage into a public provider contract, retain a deliberately bas
 - Unchanged snapshots are not rewritten. JSON replacement uses a temporary file in the destination directory followed by overwrite/rename.
 - Plain documents are versioned dictionaries keyed by the cookie's domain/path/name identity and retain the public .NET cookie metadata.
 - Encrypted documents use AES-256-GCM with a fresh nonce per write and authenticated format metadata. A random 256-bit DEK is stored only after protection through an application-supplied `IDataEncryptionKeyProtector`; the protecting KEK remains outside the JSON file.
-- `Restling.Storage.Relational` is added as a package/project placeholder. Database and schema choices remain a separate step.
+- `Restling.Storage.Relational` now supplies a SQLite provider with explicit plain and application-encrypted modes. See `.agents/sqlite-cookie-storage.md` for its schema, cryptography, lifecycle, and remaining verification.
 
 ## Affected files
 
 - Core cookie storage interface/provider, context builder/interface, context lifecycle, HTTP pipeline, and RestlingClient pipeline construction.
 - Added `AMDevIT.Restling.Storage.Json` implementation, package metadata, and README.
-- Added `AMDevIT.Restling.Storage.Relational` package placeholder and README.
+- Added `AMDevIT.Restling.Storage.Relational` package and SQLite implementation; the later implementation step is recorded separately.
 - Updated solution and test project references.
 - Added JSON plain/encrypted/disposal test sources, a test DEK protector, and a pipeline/provider notification regression.
 - Updated repository and package documentation.
@@ -39,4 +39,4 @@ Evolve cookie storage into a public provider contract, retain a deliberately bas
 - Obtain authorization, then restore and build the complete solution and run the new cookie-storage tests plus the existing cookie, pipeline, proxy, and ownership regressions.
 - Direct external mutations of `CookieContainer` have no .NET change event. They are captured on the next pipeline notification, explicit save, or orderly dispose, not immediately.
 - Background auto-save failures are exposed through `LastSaveException`; a later policy may add structured logging or an error event.
-- Define the relational schema, concurrency strategy, and provider dependencies in a separate approved step.
+- Execute the pending SQLite and existing cookie-storage verification after explicit authorization.

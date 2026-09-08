@@ -1,3 +1,5 @@
+using CoreDataEncryptionKeyProtector = AMDevIT.Restling.Core.Cookies.Storage.Security.IDataEncryptionKeyProtector;
+
 namespace AMDevIT.Restling.Storage.Json
 {
     /// <summary>Configures versioned JSON cookie persistence.</summary>
@@ -12,7 +14,7 @@ namespace AMDevIT.Restling.Storage.Json
         public TimeSpan AutoSaveDelay { get; set; } = TimeSpan.FromSeconds(3);
 
         /// <summary>Gets or sets the optional protector used for AES-256-GCM data-encryption keys.</summary>
-        public IDataEncryptionKeyProtector? DataEncryptionKeyProtector { get; set; }
+        public CoreDataEncryptionKeyProtector? DataEncryptionKeyProtector { get; set; }
 
         /// <summary>Gets or sets the JSON storage file path.</summary>
         public string FilePath { get; set; } = null!;

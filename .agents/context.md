@@ -2,7 +2,7 @@
 ## Objective and status
 
 - Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, centralized HTTP execution, and pluggable cookie persistence.
-- Status: Core cookie-storage integration and the advanced JSON provider are implemented with pending build/test verification. The relational storage project is scaffolded for a later implementation. Recovery from request-specific `ResponseEnded` failures also retains its pending regression execution.
+- Status: Core, advanced JSON, and plain/application-encrypted SQLite cookie storage are implemented with pending build/test verification. Recovery from request-specific `ResponseEnded` failures also retains its pending regression execution.
 
 ## Decisions made
 
@@ -30,6 +30,8 @@
 - `ICookiesStorageProvider` is public and owns the live cookie jar. Core's `CookieStorageProvider` is primarily in-memory with explicit basic JSON persistence; Restling never automatically calls its `SaveAsync`.
 - An attached provider loads once before the first request and receives change notifications after HTTP responses. `Restling.Storage.Json` opts into those notifications by default, coalesces them for three seconds, skips unchanged snapshots, writes atomically, and flushes during orderly disposal.
 - Advanced encrypted JSON uses AES-256-GCM and a random DEK protected by an application-supplied external key protector. The JSON file never contains an unprotected DEK.
+- `SqliteCookieStorageProvider` supports an explicit plain relational mode and an application-encrypted mode in one provider. The database persists its exact mode and refuses implicit fallback or migration.
+- Encrypted SQLite rows use separately derived AES-256-GCM and HMAC-SHA-256 keys. The shared DEK-protector contract now lives in Core; the JSON namespace retains an obsolete compatibility interface.
 
 ## Affected files
 
@@ -49,6 +51,7 @@
 - Added direct proxy overloads to RestlingClient/IRestlingClient and an aggregate test that invokes all 16 signatures and verifies CancellationToken is last.
 - Added targeted `ResponseEnded` recovery across the request transport pool and HTTP pipeline, plus a deterministic loopback regression. See `.agents/response-ended-recovery.md`.
 - Added public cookie storage integration, `Restling.Storage.Json`, the relational storage project placeholder, documentation, and persistence regression sources. See `.agents/cookie-storage-persistence.md`.
+- Implemented the relational SQLite provider, package documentation, and regression sources. See `.agents/sqlite-cookie-storage.md`.
 
 ## Checks performed
 
@@ -71,6 +74,7 @@
 - Follow-up multi-target build passed with 0 errors; the only warning was the previously observed CS8892 in generated MSTest entry-point code.
 - `ResponseEnded` recovery follow-up: fetched the remote and confirmed the clean branch was aligned with its upstream before editing. The resulting targeted diff was inspected. No restore, build, or tests were run at the user's request.
 - Cookie persistence step: fetch confirmed `Task-CookiePersistence` started aligned with `origin/main`; new project XML and solution membership were checked, and `git diff --check` passed. Restore/build/tests remain unauthorized and were not run.
+- SQLite persistence step: fetched before editing; project XML parsing and `git diff --check` pass. Restore/build/tests remain unauthorized and were not run.
 
 ## Open issues and recommended next step
 
@@ -81,4 +85,4 @@
 - POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.
 - Per-request direct/custom proxy selection and convenience overloads are implemented. HTTPS CONNECT/TLS proxy, SOCKS handshakes, real proxy authentication exchanges, other runtime/platform executions, and bounded cache eviction remain untested/out of scope.
 - Cookie persistence requires authorized compilation and runtime regression execution. Direct external `CookieContainer` changes are detected at the next request notification, explicit save, or orderly dispose because `CookieContainer` exposes no mutation event.
-- The relational cookie provider still requires separate schema and database-provider decisions.
+- SQLite mode migration, full-file encryption, rollback protection, key rotation, and multi-process coordination remain outside the current relational provider step.

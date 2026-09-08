@@ -1,26 +1,8 @@
 namespace AMDevIT.Restling.Storage.Json
 {
-    /// <summary>Protects random data-encryption keys with a key held outside the JSON file.</summary>
-    public interface IDataEncryptionKeyProtector
+    /// <summary>Provides a compatibility name for the shared Core data-encryption-key protector contract.</summary>
+    [Obsolete("Use AMDevIT.Restling.Core.Cookies.Storage.Security.IDataEncryptionKeyProtector instead.")]
+    public interface IDataEncryptionKeyProtector : global::AMDevIT.Restling.Core.Cookies.Storage.Security.IDataEncryptionKeyProtector
     {
-        #region Properties
-
-        /// <summary>Gets the identifier recorded with newly protected keys.</summary>
-        string KeyId { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>Protects a newly generated 256-bit data-encryption key.</summary>
-        ValueTask<byte[]> ProtectAsync(ReadOnlyMemory<byte> dataEncryptionKey,
-                                       CancellationToken cancellationToken = default);
-
-        /// <summary>Unprotects a stored data-encryption key.</summary>
-        ValueTask<byte[]> UnprotectAsync(string keyId,
-                                         ReadOnlyMemory<byte> protectedDataEncryptionKey,
-                                         CancellationToken cancellationToken = default);
-
-        #endregion
     }
 }

@@ -1,4 +1,4 @@
-using AMDevIT.Restling.Storage.Json;
+using AMDevIT.Restling.Core.Cookies.Storage.Security;
 
 namespace AMDevIT.Restling.Tests.Storage
 {

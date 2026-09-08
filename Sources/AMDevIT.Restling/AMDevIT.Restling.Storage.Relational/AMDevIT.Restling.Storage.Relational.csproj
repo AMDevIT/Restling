@@ -1,14 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<PackageId>Restling.Storage.Relational</PackageId>
-		<Description>Relational cookie persistence abstractions for Restling.</Description>
+		<Description>Plain and application-encrypted SQLite cookie persistence for Restling.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<Title>Restling Relational Cookie Storage</Title>
+		<Title>Restling SQLite Cookie Storage</Title>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\AMDevIT.Restling.Core\AMDevIT.Restling.Core.csproj" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
 		<None Include="..\..\..\Assets\Icons\RestlingIcon.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>

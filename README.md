@@ -388,6 +388,23 @@ builder.AddCookieStorageProvider(storage);
 using RestlingClient client = new(builder);
 ```
 
+Install `Restling.Storage.Relational` to use the same cookie lifecycle with SQLite. `SqliteCookieStorageProvider` supports ordinary relational columns or application-layer encryption selected through `SqliteCookieEncryptionMode`. The encrypted mode stores an HMAC blind index and an AES-256-GCM payload, and requires the same external DEK-protector model as the advanced JSON provider. The database records its mode and rejects mismatched configuration; switching modes requires an explicit migration.
+
+```csharp
+SqliteCookieStorageOptions storageOptions = new()
+{
+    FilePath = cookieDatabasePath,
+    EncryptionMode = SqliteCookieEncryptionMode.Application,
+    DataEncryptionKeyProtector = keyProtector
+};
+SqliteCookieStorageProvider storage = new(storageOptions);
+HttpClientContextBuilder builder = new();
+builder.AddCookieStorageProvider(storage);
+using RestlingClient client = new(builder);
+```
+
+Application encryption is not whole-file SQLite encryption: schema, record count, approximate sizes, timestamps, deletion, and rollback remain observable. Keep the database protected by operating-system permissions and keep the key-encryption key outside it.
+
 ## Result handling
 
 Restling returns a result object for HTTP failures and for most execution or decoding errors. Check `IsSuccessful`, then inspect `StatusCode` and `Exception`:
