@@ -37,7 +37,7 @@ namespace AMDevIT.Restling.Tests
         }
 
         [TestMethod]
-        [DynamicData(nameof(GenerateXMLXEEData), DynamicDataSourceType.Method)]
+        [DynamicData(nameof(GenerateXMLXEEData))]
         public async Task TestXMLXEEExecutionAsync(string xml, bool allowUnsafe, bool containsUnsafe)
         {
 #if DEBUG

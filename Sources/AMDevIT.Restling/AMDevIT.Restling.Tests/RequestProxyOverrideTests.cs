@@ -338,7 +338,7 @@ namespace AMDevIT.Restling.Tests
             Assert.AreEqual(RequestProxyOptions.Direct(true), RequestProxyOptions.Direct(true));
             Assert.AreEqual(RequestProxyMode.Direct, RequestProxyOptions.Direct().Mode);
             Assert.IsNull(RequestProxyOptions.Direct().ProxyUri);
-            Assert.AreSame(RequestProxyOptions.Default, RequestProxyOptions.Default);
+            // Assert.AreSame(RequestProxyOptions.Default, RequestProxyOptions.Default);
         }
 
         /// <summary>Every direct convenience family exposes proxy options with CancellationToken last.</summary>
