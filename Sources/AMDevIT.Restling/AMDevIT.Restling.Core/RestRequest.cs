@@ -63,6 +63,9 @@ namespace AMDevIT.Restling.Core
             set;
         } = null;
 
+        /// <summary>Gets the response data mappings selected by HTTP status code.</summary>
+        public ResponseMappingCollection ResponseMappings { get; } = new();
+
         public RequestHeaders Headers => this.headers;
 
         /// <summary>Gets or sets the transport override used only for this request.</summary>

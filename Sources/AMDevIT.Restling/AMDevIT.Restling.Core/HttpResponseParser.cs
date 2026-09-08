@@ -39,6 +39,7 @@ namespace AMDevIT.Restling.Core
                                                          CancellationToken cancellationToken = default)
         {
             RestRequestResult restRequestResult;
+            ResponseMapping? responseMapping;
 
             if (resultHttpMessage != null)
             {
@@ -68,6 +69,12 @@ namespace AMDevIT.Restling.Core
                 this.Logger?.LogError(httpClientException, "Http response object is null");
             }
 
+            responseMapping = restRequestResult.StatusCode.HasValue
+                ? restRequest.ResponseMappings.Find(restRequestResult.StatusCode.Value)
+                : null;
+            this.AttachMappedData(restRequestResult,
+                                  responseMapping,
+                                  restRequest.ForcePayloadJsonSerializerLibrary);
             this.AttachProblem(restRequestResult);
             return restRequestResult;
         }
@@ -87,28 +94,37 @@ namespace AMDevIT.Restling.Core
                 T? data = default;
                 RetrievedContentResult content;
                 ResponseHeaders responseHeaders;
-                MediaTypeHeaderValue? contentType = resultHttpMessage.Content.Headers.ContentType;
-                Charset charset = CharsetParser.Parse(contentType?.CharSet);
+                MediaTypeHeaderValue? contentType;
+                Charset charset;
+                ResponseMapping? responseMapping;
+                Exception? decodeException;
+
+                contentType = resultHttpMessage.Content.Headers.ContentType;
+                charset = CharsetParser.Parse(contentType?.CharSet);
+                responseMapping = restRequest.ResponseMappings.Find(resultHttpMessage.StatusCode);
                 rawContent = await resultHttpMessage.Content.ReadAsByteArrayAsync(cancellationToken);
                 content = RetrieveContent(rawContent, contentType);
-                Exception? decodeException = null;
+                decodeException = null;
 
                 // Response received.
 
                 try
                 {
-                    data = typeof(T) switch
+                    if (responseMapping == null)
                     {
-                        Type t when t == typeof(byte[]) => (T)(object)rawContent,
+                        data = typeof(T) switch
+                        {
+                            Type t when t == typeof(byte[]) => (T)(object)rawContent,
 
-                        Type t when t == typeof(string) => (T)(object)(
-                            content.IsBinaryData == true
-                                ? Convert.ToBase64String(rawContent)
-                                : content.Content?.ToString() ?? string.Empty
-                        ),
-                        Type t when t.IsPrimitive => ConvertPrimitive<T>(content.Content),
-                        _ => this.DecodeData<T>(rawContent, content, contentType, payloadJsonSerializerLibrary: payloadJsonSerializerLibrary)
-                    };
+                            Type t when t == typeof(string) => (T)(object)(
+                                content.IsBinaryData == true
+                                    ? Convert.ToBase64String(rawContent)
+                                    : content.Content?.ToString() ?? string.Empty
+                            ),
+                            Type t when t.IsPrimitive => ConvertPrimitive<T>(content.Content),
+                            _ => this.DecodeData<T>(rawContent, content, contentType, payloadJsonSerializerLibrary: payloadJsonSerializerLibrary)
+                        };
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -141,6 +157,7 @@ namespace AMDevIT.Restling.Core
                                         content,
                                         responseHeaders,
                                         exception: decodeException);
+                this.AttachMappedData(restRequestResult, responseMapping, payloadJsonSerializerLibrary);
             }
             else
             {
@@ -151,6 +168,47 @@ namespace AMDevIT.Restling.Core
 
             this.AttachProblem(restRequestResult);
             return restRequestResult;
+        }
+
+        /// <summary>Decodes the response through the mapping selected for its HTTP status code.</summary>
+        private void AttachMappedData(RestRequestResult result,
+                                      ResponseMapping? mapping,
+                                      PayloadJsonSerializerLibrary? payloadJsonSerializerLibrary)
+        {
+            ContentCodecContext context;
+            IContentCodec? codec;
+
+            if (mapping == null || result.RawContent == null)
+                return;
+
+            result.MappedDataType = mapping.DataType;
+            codec = this.Codecs.FindReader(result.ContentType);
+            if (codec == null)
+            {
+                this.Logger?.LogWarning("Unsupported media type: {MediaType}", result.ContentType);
+                return;
+            }
+
+            context = new ContentCodecContext
+            {
+                Logger = this.Logger,
+                JsonSerializerLibrary = payloadJsonSerializerLibrary,
+                AllowUnsafeXml = this.AllowUnsafeXml,
+                Codecs = this.Codecs
+            };
+
+            try
+            {
+                result.MappedData = mapping.Decode(codec,
+                                                   result.RawContent,
+                                                   result.RetrievedContent?.ContentType,
+                                                   context);
+            }
+            catch (Exception exception)
+            {
+                result.MappedDataException = exception;
+                this.Logger?.LogError(exception, "Failed to decode mapped response content.");
+            }
         }
 
         private T? RetrievePrimitiveType<T>(byte[] rawContent, RetrievedContentResult content, MediaTypeHeaderValue? contentType)

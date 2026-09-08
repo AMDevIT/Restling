@@ -50,6 +50,15 @@ namespace AMDevIT.Restling.Core
         /// <summary>A problem-document decoding failure, without replacing the HTTP status or original body.</summary>
         public Exception? ProblemException { get; internal set; }
 
+        /// <summary>Gets response data decoded through the mapping selected for the HTTP status code.</summary>
+        public object? MappedData { get; internal set; }
+
+        /// <summary>Gets the registered type selected for the HTTP status code.</summary>
+        public Type? MappedDataType { get; internal set; }
+
+        /// <summary>Gets a mapped-response decoding failure without replacing the HTTP result.</summary>
+        public Exception? MappedDataException { get; internal set; }
+
         public ResponseHeaders ResponseHeaders => this.responseHeaders;
 
         #endregion
@@ -80,6 +89,22 @@ namespace AMDevIT.Restling.Core
         #endregion
 
         #region Methods
+
+        /// <summary>Attempts to retrieve mapped response data as the requested type.</summary>
+        /// <typeparam name="T">The expected mapped response data type.</typeparam>
+        /// <param name="data">The mapped response data when its runtime type is compatible.</param>
+        /// <returns>True when mapped response data is available as the requested type.</returns>
+        public bool TryGetMappedData<T>(out T? data)
+        {
+            if (this.MappedData is T mappedData)
+            {
+                data = mappedData;
+                return true;
+            }
+
+            data = default;
+            return false;
+        }
 
         protected virtual bool ValidateIsSuccessful()
         {
