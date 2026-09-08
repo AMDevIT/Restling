@@ -22,6 +22,7 @@
         #region Text Media Types
 
         public const string TextPlain = "text/plain";
+        public const string TextCsv = "text/csv";
         public const string TextHtml = "text/html";
         public const string TextCss = "text/css";
         public const string TextXml = "text/xml";
@@ -64,6 +65,15 @@
         public const string MultipartFormData = "multipart/form-data";
         public const string MultipartMixed = "multipart/mixed";
         public const string MultipartAlternative = "multipart/alternative";
+        public const string MultipartRelated = "multipart/related";
+        public const string MultipartByteRanges = "multipart/byteranges";
+        public const string MultipartDigest = "multipart/digest";
+        public const string MultipartParallel = "multipart/parallel";
+        public const string MultipartSigned = "multipart/signed";
+        public const string MultipartEncrypted = "multipart/encrypted";
+        public const string MultipartReport = "multipart/report";
+        public const string MultipartMultilingual = "multipart/multilingual";
+        public const string MultipartMixedReplace = "multipart/x-mixed-replace";
 
         #endregion
 

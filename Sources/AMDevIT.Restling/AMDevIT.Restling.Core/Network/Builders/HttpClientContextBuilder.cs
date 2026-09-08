@@ -1,5 +1,7 @@
 ﻿using AMDevIT.Restling.Core.Cookies;
 using System.Collections.ObjectModel;
+using AMDevIT.Restling.Core.Codecs;
+using AMDevIT.Restling.Core.Network;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -20,13 +22,19 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         private HttpMessageHandler? httpMessageHandler;
         private CookieContainer? cookieContainer;
-        private bool disposeHandler = false;
+        private CookieContainer? fallbackCookieContainer;
+        private HttpMessageHandlerOwnership handlerOwnership = HttpMessageHandlerOwnership.Borrowed;
         private string userAgent = DefaultUserAgent;
 
         private readonly HashSet<HttpCookieData> cookies = [];
         private readonly Dictionary<string, string> defaultHeaders = [];
         private AuthenticationHeader? authenticationHeader = null;
         private TimeSpan? timeout = null;
+        private ContentCodecRegistry codecs = new();
+        private WebProxy? proxy;
+        private bool allowAutoRedirect;
+        private Func<CookieContainer, HttpMessageHandler>? requestHandlerFactory;
+        private bool usesDefaultRequestHandlerFactory;
 
         #endregion
 
@@ -38,27 +46,21 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         #region Methods
 
+        /// <summary>Adds a codec with priority over previously registered codecs, retaining the defaults.</summary>
+        public HttpClientContextBuilder AddCodec(IContentCodec codec)
+        {
+            this.codecs = this.codecs.WithCodec(codec);
+            return this;
+        }
+
         #region Cookies
 
+        /// <summary>Selects an explicit cookie container and enables cookies on a supported native handler.</summary>
         public HttpClientContextBuilder AddCookieContainer(CookieContainer cookieContainer)
         {
+            ArgumentNullException.ThrowIfNull(cookieContainer);
             this.cookieContainer = cookieContainer;
-
-            if (this.httpMessageHandler != null)
-            {
-                switch (this.httpMessageHandler)
-                {
-                    case SocketsHttpHandler socketsHttpHandler:
-                        socketsHttpHandler.CookieContainer = this.cookieContainer;
-                        socketsHttpHandler.UseCookies = true;
-                        break;
-
-                    case HttpClientHandler httpClientHandler:
-                        httpClientHandler.CookieContainer = this.cookieContainer;
-                        httpClientHandler.UseCookies = true;
-                        break;
-                }
-            }
+            this.ResolveCookieContainer(enableCookies: true);
             return this;
         }
 
@@ -111,8 +113,29 @@ namespace AMDevIT.Restling.Core.Network.Builders
 
         public HttpClientContextBuilder AddHandler(HttpMessageHandler handler, bool diposeHandler = false)
         {
+            return this.AddHandler(handler,
+                                   diposeHandler
+                                       ? HttpMessageHandlerOwnership.Owned
+                                       : HttpMessageHandlerOwnership.Borrowed);
+        }
+
+        /// <summary>Adds a handler with an explicit ownership contract.</summary>
+        /// <param name="handler">The message handler used by the generated HTTP client.</param>
+        /// <param name="ownership">Whether the generated context borrows or owns the handler.</param>
+        /// <returns>The current builder instance.</returns>
+        public HttpClientContextBuilder AddHandler(HttpMessageHandler handler, HttpMessageHandlerOwnership ownership)
+        {
+            ArgumentNullException.ThrowIfNull(handler);
+            if (!Enum.IsDefined(ownership))
+                throw new ArgumentOutOfRangeException(nameof(ownership));
+
+            if (this.proxy != null)
+                ApplyProxy(handler, this.proxy, this.allowAutoRedirect);
+
             this.httpMessageHandler = handler;
-            this.disposeHandler = diposeHandler;
+            this.handlerOwnership = ownership;
+            this.usesDefaultRequestHandlerFactory = false;
+            this.ResolveCookieContainer(enableCookies: true);
 
             return this;
         }
@@ -124,10 +147,47 @@ namespace AMDevIT.Restling.Core.Network.Builders
             if (this.httpMessageHandler == null)
             {
                 this.httpMessageHandler = new SocketsHttpHandler();
-                this.disposeHandler = true;
+                this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
+                this.ResolveCookieContainer(enableCookies: true);
+                if (this.proxy != null)
+                    ApplyProxy(this.httpMessageHandler, this.proxy, this.allowAutoRedirect);
             }
 
             configureHandler(this.httpMessageHandler);
+            this.usesDefaultRequestHandlerFactory = false;
+            return this;
+        }
+
+        /// <summary>Selects an explicit proxy and HTTP redirect policy for a native handler.</summary>
+        /// <param name="proxyUri">An absolute HTTP, HTTPS, SOCKS4, SOCKS4a, or SOCKS5 proxy URI without credentials, query, fragment, or a non-root path.</param>
+        /// <param name="allowAutoRedirect">Whether the handler automatically follows HTTP response redirects.</param>
+        /// <returns>The current builder instance.</returns>
+        /// <exception cref="ArgumentException">The proxy URI is invalid or unsupported.</exception>
+        /// <exception cref="NotSupportedException">The selected handler is not a directly supplied native handler.</exception>
+        /// <exception cref="InvalidOperationException">The selected handler has already started processing requests.</exception>
+        /// <remarks>Configure before sending requests. Credentials can be set through ConfigureHandler. Later ConfigureHandler changes are retained by Build.</remarks>
+        public HttpClientContextBuilder AddProxy(string proxyUri, bool allowAutoRedirect)
+        {
+            Uri address;
+            WebProxy selectedProxy;
+
+            address = ProxyUriParser.Parse(proxyUri);
+            selectedProxy = new WebProxy(address);
+            if (this.httpMessageHandler != null)
+                ApplyProxy(this.httpMessageHandler, selectedProxy, allowAutoRedirect);
+            this.proxy = selectedProxy;
+            this.allowAutoRedirect = allowAutoRedirect;
+            return this;
+        }
+
+        /// <summary>Registers a factory for transports used by Direct and Custom per-request proxy overrides.</summary>
+        /// <param name="handlerFactory">Creates a fresh handler and receives the context's shared cookie container.</param>
+        /// <returns>The current builder instance.</returns>
+        /// <remarks>The generated handlers are owned by the context. The factory must return a directly supported native handler.</remarks>
+        public HttpClientContextBuilder AddRequestHandlerFactory(Func<CookieContainer, HttpMessageHandler> handlerFactory)
+        {
+            ArgumentNullException.ThrowIfNull(handlerFactory);
+            this.requestHandlerFactory = handlerFactory;
             return this;
         }
 
@@ -210,31 +270,38 @@ namespace AMDevIT.Restling.Core.Network.Builders
         {
             HttpClient httpClient;
             HttpClientContext httpClientContext;
-
-            this.cookieContainer ??= new CookieContainer();
+            HttpClientContextOwnership ownership;
+            CookieContainer effectiveCookieContainer;
 
             if (this.httpMessageHandler == null)
             {
                 SocketsHttpHandler socketsHttpHandler = new()
                 {
-                    CookieContainer = this.cookieContainer,
                     UseCookies = true,
                     AllowAutoRedirect = false
                 };
                 this.httpMessageHandler = socketsHttpHandler;
-                this.disposeHandler = true;
+                this.handlerOwnership = HttpMessageHandlerOwnership.Owned;
+                this.usesDefaultRequestHandlerFactory = true;
+                if (this.proxy != null)
+                    ApplyProxy(this.httpMessageHandler, this.proxy, this.allowAutoRedirect);
             }
+
+            effectiveCookieContainer = this.ResolveCookieContainer();
 
             if (this.cookies.Count > 0)
             {
                 foreach (HttpCookieData cookieData in this.cookies)
                 {
                     Cookie cookie = new(cookieData.Name, cookieData.Value, cookieData.Path, cookieData.Domain);
-                    this.cookieContainer.Add(cookie);
+                    effectiveCookieContainer.Add(cookie);
                 }
             }           
 
-            httpClient = new(this.httpMessageHandler, this.disposeHandler);
+            httpClient = new(this.httpMessageHandler, disposeHandler: false);
+            ownership = HttpClientContextOwnership.HttpClient;
+            if (this.handlerOwnership == HttpMessageHandlerOwnership.Owned)
+                ownership |= HttpClientContextOwnership.HttpMessageHandler;
 
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(this.userAgent);
 
@@ -253,9 +320,86 @@ namespace AMDevIT.Restling.Core.Network.Builders
                 httpClient.DefaultRequestHeaders.Authorization = authenticationHeaderValue;
             }
 
-            httpClientContext = new(httpClient, this.httpMessageHandler, this.cookieContainer);
+            httpClientContext = new(httpClient,
+                                    this.httpMessageHandler,
+                                    effectiveCookieContainer,
+                                    ownership,
+                                    this.requestHandlerFactory ?? (this.usesDefaultRequestHandlerFactory ? CreateDefaultRequestHandler : null))
+            {
+                Codecs = this.codecs
+            };
 
             return httpClientContext;
+        }
+
+        /// <summary>Creates the native baseline used by per-request proxy overrides for a default builder.</summary>
+        private static HttpMessageHandler CreateDefaultRequestHandler(CookieContainer cookieContainer)
+        {
+            return new SocketsHttpHandler
+            {
+                CookieContainer = cookieContainer,
+                UseCookies = true,
+                AllowAutoRedirect = false
+            };
+        }
+
+        /// <summary>Applies explicit proxy settings without replacing the handler or its cookie container.</summary>
+        private static void ApplyProxy(HttpMessageHandler handler, WebProxy proxy, bool allowAutoRedirect)
+        {
+            switch (handler)
+            {
+                case SocketsHttpHandler socketsHttpHandler:
+                    if (!ReferenceEquals(socketsHttpHandler.Proxy, proxy))
+                        socketsHttpHandler.Proxy = proxy;
+                    if (!socketsHttpHandler.UseProxy)
+                        socketsHttpHandler.UseProxy = true;
+                    if (socketsHttpHandler.AllowAutoRedirect != allowAutoRedirect)
+                        socketsHttpHandler.AllowAutoRedirect = allowAutoRedirect;
+                    break;
+
+                case HttpClientHandler httpClientHandler:
+                    if (!ReferenceEquals(httpClientHandler.Proxy, proxy))
+                        httpClientHandler.Proxy = proxy;
+                    if (!httpClientHandler.UseProxy)
+                        httpClientHandler.UseProxy = true;
+                    if (httpClientHandler.AllowAutoRedirect != allowAutoRedirect)
+                        httpClientHandler.AllowAutoRedirect = allowAutoRedirect;
+                    break;
+
+                default:
+                    throw new NotSupportedException("AddProxy requires a directly supplied SocketsHttpHandler or HttpClientHandler. Configure custom or delegating handlers explicitly.");
+            }
+        }
+
+        /// <summary>Shares the explicit or native cookie container without replacing existing handler state unnecessarily.</summary>
+        /// <remarks>An explicit container takes precedence. Without one, native cookie settings and stored cookies are retained.</remarks>
+        private CookieContainer ResolveCookieContainer(bool enableCookies = false)
+        {
+            switch (this.httpMessageHandler)
+            {
+                case SocketsHttpHandler socketsHttpHandler:
+                    if (this.cookieContainer != null)
+                    {
+                        if (!ReferenceEquals(socketsHttpHandler.CookieContainer, this.cookieContainer))
+                            socketsHttpHandler.CookieContainer = this.cookieContainer;
+                        if (enableCookies && !socketsHttpHandler.UseCookies)
+                            socketsHttpHandler.UseCookies = true;
+                    }
+                    return socketsHttpHandler.CookieContainer;
+
+                case HttpClientHandler httpClientHandler:
+                    if (this.cookieContainer != null)
+                    {
+                        if (!ReferenceEquals(httpClientHandler.CookieContainer, this.cookieContainer))
+                            httpClientHandler.CookieContainer = this.cookieContainer;
+                        if (enableCookies && !httpClientHandler.UseCookies)
+                            httpClientHandler.UseCookies = true;
+                    }
+                    return httpClientHandler.CookieContainer;
+
+                default:
+                    return this.cookieContainer ?? (this.fallbackCookieContainer ??= new CookieContainer());
+            }
         }
 
 
