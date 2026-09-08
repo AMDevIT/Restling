@@ -6,6 +6,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Title>Restling JSON Cookie Storage</Title>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageReleaseNotes>First implementation of the JSON provider for Restling cookie persistance.</PackageReleaseNotes>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\AMDevIT.Restling.Core\AMDevIT.Restling.Core.csproj" />

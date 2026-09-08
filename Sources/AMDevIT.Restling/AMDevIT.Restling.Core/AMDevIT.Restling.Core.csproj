@@ -6,7 +6,7 @@
 		<Product>Restling REST Client</Product>
 		<Description>A lightweight, powerful, and easy-to-use REST client library for .NET</Description>
 		<PackageReleaseNotes>
-			Added support for multipart and additional serialization providers.
+			Added support for cookie persistant storage
 		</PackageReleaseNotes>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<!--<PackageIcon>RestlingIcon.png</PackageIcon>-->

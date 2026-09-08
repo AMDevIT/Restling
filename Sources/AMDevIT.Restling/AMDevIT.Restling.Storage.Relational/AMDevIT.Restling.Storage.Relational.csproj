@@ -6,6 +6,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Title>Restling SQLite Cookie Storage</Title>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageReleaseNotes>First implementation of the SQLite provider for Restling cookie persistance.</PackageReleaseNotes>
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\AMDevIT.Restling.Core\AMDevIT.Restling.Core.csproj" />
