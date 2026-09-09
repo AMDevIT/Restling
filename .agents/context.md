@@ -1,8 +1,8 @@
 # Restling development context
 ## Objective and status
 
-- Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, centralized HTTP execution, and pluggable cookie persistence.
-- Status: Core, advanced JSON, and plain/application-encrypted SQLite cookie storage are implemented with pending build/test verification. Recovery from request-specific `ResponseEnded` failures also retains its pending regression execution.
+- Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, centralized HTTP execution, pluggable cookie persistence, and status-based complex response data mapping.
+- Status: Status-based response data mapping is implemented, documented, and verified with 18 targeted and 202 relevant regression cases passing. The full solution builds with 0 warnings/errors. Four separate SQLite storage tests expose a pre-existing Windows file-lock cleanup issue.
 
 ## Decisions made
 
@@ -32,6 +32,9 @@
 - Advanced encrypted JSON uses AES-256-GCM and a random DEK protected by an application-supplied external key protector. The JSON file never contains an unprotected DEK.
 - `SqliteCookieStorageProvider` supports an explicit plain relational mode and an application-encrypted mode in one provider. The database persists its exact mode and refuses implicit fallback or migration.
 - Encrypted SQLite rows use separately derived AES-256-GCM and HMAC-SHA-256 keys. The shared DEK-protector contract now lives in Core; the JSON namespace retains an obsolete compatibility interface.
+- Status-response models require no shared marker interface. `RestRequest.ResponseMappings` selects arbitrary codec-supported types by exact status, ordered status pattern, or fallback.
+- Exact response mappings override ranges; overlapping ranges are first-match-wins; re-registering an exact status replaces it. A matched response is decoded once into `MappedData`, while unmapped requests retain the existing `Data` behavior.
+- Mapped response failures are exposed separately through `MappedDataException` without losing HTTP metadata, raw content, or optional Problem Details.
 
 ## Affected files
 
@@ -52,6 +55,7 @@
 - Added targeted `ResponseEnded` recovery across the request transport pool and HTTP pipeline, plus a deterministic loopback regression. See `.agents/response-ended-recovery.md`.
 - Added public cookie storage integration, `Restling.Storage.Json`, the relational storage project placeholder, documentation, and persistence regression sources. See `.agents/cookie-storage-persistence.md`.
 - Implemented the relational SQLite provider, package documentation, and regression sources. See `.agents/sqlite-cookie-storage.md`.
+- Added status-pattern and mapping contracts, integrated them into buffered response parsing, added 18 deterministic cases, and documented the API. See `.agents/status-response-mapping.md`.
 
 ## Checks performed
 
@@ -75,14 +79,17 @@
 - `ResponseEnded` recovery follow-up: fetched the remote and confirmed the clean branch was aligned with its upstream before editing. The resulting targeted diff was inspected. No restore, build, or tests were run at the user's request.
 - Cookie persistence step: fetch confirmed `Task-CookiePersistence` started aligned with `origin/main`; new project XML and solution membership were checked, and `git diff --check` passed. Restore/build/tests remain unauthorized and were not run.
 - SQLite persistence step: fetched before editing; project XML parsing and `git diff --check` pass. Restore/build/tests remain unauthorized and were not run.
+- Status-response completion: restore passed and the full multi-target solution build completed with 0 warnings/errors. The targeted suite passed 18/18 and the relevant local regression passed 202/202 on net10.0. A broader 208-case run passed 204 and reproduced four unrelated SQLite Windows file-lock failures; the isolated SQLite suite passed 2/6 with the same failures. Reports are under `TestResults/status-response/`.
 
 ## Open issues and recommended next step
 
-- No known failures remain in the selected local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
+- No known failures remain in the selected non-SQLite local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
 - Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
-- The new `ResponseEndedInvalidatesAlternativeTransport` regression and related proxy suites remain pending execution.
+- `ResponseEndedInvalidatesAlternativeTransport` and the related proxy suites pass in the latest relevant regression run.
 - POST/PUT payload omission is fixed; general serializer-precedence normalization remains separate.
 - Per-request direct/custom proxy selection and convenience overloads are implemented. HTTPS CONNECT/TLS proxy, SOCKS handshakes, real proxy authentication exchanges, other runtime/platform executions, and bounded cache eviction remain untested/out of scope.
-- Cookie persistence requires authorized compilation and runtime regression execution. Direct external `CookieContainer` changes are detected at the next request notification, explicit save, or orderly dispose because `CookieContainer` exposes no mutation event.
+- Cookie persistence compiles; JSON and core cookie regressions pass. Direct external `CookieContainer` changes are detected at the next request notification, explicit save, or orderly dispose because `CookieContainer` exposes no mutation event.
 - SQLite mode migration, full-file encryption, rollback protection, key rotation, and multi-process coordination remain outside the current relational provider step.
+- Status-based response mapping has no known failure in the relevant local suites. External httpbin and non-net10 runtime execution remain outside this run.
+- Four SQLite storage regressions cannot delete their temporary database on Windows because the file remains open; investigate separately from issue #37.
