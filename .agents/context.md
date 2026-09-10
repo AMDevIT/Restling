@@ -84,6 +84,9 @@
 
 ## Open issues and recommended next step
 
+- On 2026-09-10, the Restling wiki was updated from `origin/main`, with a separate development-only page for status-based
+  response mapping. Static wiki link and diff checks passed; no build/test was run for the documentation-only change.
+
 - No known failures remain in the selected local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
 - Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
