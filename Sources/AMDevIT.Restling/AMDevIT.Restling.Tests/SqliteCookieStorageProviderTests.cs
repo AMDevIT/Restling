@@ -214,10 +214,21 @@ namespace AMDevIT.Restling.Tests
             return Path.Combine(Path.GetTempPath(), $"restling-cookies-{Guid.NewGuid():N}.db");
         }
 
+        /// <summary>Creates a non-pooled connection so test cleanup can delete the database immediately.</summary>
+        private static SqliteConnection CreateConnection(string filePath)
+        {
+            SqliteConnectionStringBuilder builder = new()
+            {
+                DataSource = filePath,
+                Pooling = false
+            };
+            return new SqliteConnection(builder.ToString());
+        }
+
         /// <summary>Reads one scalar from a test database.</summary>
         private static async Task<T> ReadScalarAsync<T>(string filePath, string commandText)
         {
-            await using SqliteConnection connection = new($"Data Source={filePath}");
+            await using SqliteConnection connection = CreateConnection(filePath);
             await connection.OpenAsync();
             await using SqliteCommand command = connection.CreateCommand();
 
@@ -229,7 +240,7 @@ namespace AMDevIT.Restling.Tests
         /// <summary>Executes one mutation against a test database.</summary>
         private static async Task ExecuteNonQueryAsync(string filePath, string commandText)
         {
-            await using SqliteConnection connection = new($"Data Source={filePath}");
+            await using SqliteConnection connection = CreateConnection(filePath);
             await connection.OpenAsync();
             await using SqliteCommand command = connection.CreateCommand();
 

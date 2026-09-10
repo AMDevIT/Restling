@@ -2,7 +2,7 @@
 ## Objective and status
 
 - Objective: add extensible codecs, explicit resource ownership, complete MIME multipart support, centralized HTTP execution, pluggable cookie persistence, and status-based complex response data mapping.
-- Status: Status-based response data mapping is implemented, documented, and verified with 18 targeted and 202 relevant regression cases passing. The full solution builds with 0 warnings/errors. Four separate SQLite storage tests expose a pre-existing Windows file-lock cleanup issue.
+- Status: Status-based response data mapping is implemented, documented, and verified with 18 targeted and 202 relevant regression cases passing. The full solution builds with 0 warnings/errors. The SQLite provider suite passes 6/6 after correcting pooled test-helper connections.
 
 ## Decisions made
 
@@ -80,10 +80,11 @@
 - Cookie persistence step: fetch confirmed `Task-CookiePersistence` started aligned with `origin/main`; new project XML and solution membership were checked, and `git diff --check` passed. Restore/build/tests remain unauthorized and were not run.
 - SQLite persistence step: fetched before editing; project XML parsing and `git diff --check` pass. Restore/build/tests remain unauthorized and were not run.
 - Status-response completion: restore passed and the full multi-target solution build completed with 0 warnings/errors. The targeted suite passed 18/18 and the relevant local regression passed 202/202 on net10.0. A broader 208-case run passed 204 and reproduced four unrelated SQLite Windows file-lock failures; the isolated SQLite suite passed 2/6 with the same failures. Reports are under `TestResults/status-response/`.
+- SQLite test cleanup follow-up: the provider already used non-pooled connections, but two test helpers used default pooled connections and retained temporary database files on Windows. Disabling pooling in the helpers resolved the issue; restore and the multi-target build passed with 0 warnings/errors, and the isolated SQLite suite passed 6/6. Report: `TestResults/status-response/sqlite-pooling-fix.trx`.
 
 ## Open issues and recommended next step
 
-- No known failures remain in the selected non-SQLite local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
+- No known failures remain in the selected local suites. Opaque custom/delegating-handler cookie processing remains the caller's responsibility; only directly supported native handlers are bound automatically.
 - Runtime verification on other target frameworks/platforms and coverage/baseline comparison remain outside this run.
 - Integration tests against httpbin remain separate and were not run.
 - `ResponseEndedInvalidatesAlternativeTransport` and the related proxy suites pass in the latest relevant regression run.
@@ -92,4 +93,3 @@
 - Cookie persistence compiles; JSON and core cookie regressions pass. Direct external `CookieContainer` changes are detected at the next request notification, explicit save, or orderly dispose because `CookieContainer` exposes no mutation event.
 - SQLite mode migration, full-file encryption, rollback protection, key rotation, and multi-process coordination remain outside the current relational provider step.
 - Status-based response mapping has no known failure in the relevant local suites. External httpbin and non-net10 runtime execution remain outside this run.
-- Four SQLite storage regressions cannot delete their temporary database on Windows because the file remains open; investigate separately from issue #37.

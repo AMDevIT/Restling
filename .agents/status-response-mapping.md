@@ -32,7 +32,7 @@ Implement issue #37 with an opt-in fluent API that selects a response data type 
 - The first targeted run exposed five test-fixture casing errors against the existing case-sensitive System.Text.Json behavior; production code was unchanged and the fixtures were corrected.
 - The final status-response suite passed 18/18 on net10.0.
 - The relevant selected local regression passed 202/202 on net10.0, covering response mapping, codecs, pipeline, XML security, ownership, multipart, cookies, proxy routing, ResponseEnded recovery, and JSON cookie storage.
-- A broader 208-case run passed 204 tests and failed four pre-existing SQLite cases. An isolated SQLite rerun reproduced the same four Windows file-lock failures; two SQLite cases pass. This is unrelated to response mapping and was not modified.
+- A broader 208-case run initially passed 204 tests and exposed four SQLite test-helper file-lock failures. Disabling connection pooling in those helpers resolved the independent cleanup problem; the isolated SQLite suite now passes 6/6.
 - The initial `dotnet test` invocation exited without executing or producing a report under the resolved test tooling, so verification used `dotnet vstest` against the built net10.0 assembly.
 - Reports are under `TestResults/status-response/`.
 
@@ -40,5 +40,4 @@ Implement issue #37 with an opt-in fluent API that selects a response data type 
 
 - The status-response implementation has no known failures in the relevant local suites.
 - External httpbin integration tests and runtime execution on net8.0, net9.0, iOS, Android, and MAUI remain outside this run.
-- SQLite cookie-storage cleanup still needs a separate investigation: four tests cannot delete their temporary database because it remains open on Windows.
 - Review the public naming and fluent API, then commit the progressive-context changes if accepted.

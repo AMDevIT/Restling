@@ -2,7 +2,7 @@
 
 ## Objective and status
 
-Implement the relational cookie-storage step with one SQLite provider supporting explicit plain and application-encrypted modes. Source, documentation, and regression tests are complete; restore, build, and test execution remain pending explicit user authorization.
+Implement the relational cookie-storage step with one SQLite provider supporting explicit plain and application-encrypted modes. Source, documentation, build, and the six provider regression cases are complete.
 
 ## Decisions
 
@@ -22,6 +22,7 @@ Implement the relational cookie-storage step with one SQLite provider supporting
 - Added the `Microsoft.Data.Sqlite` dependency and updated relational package metadata and README.
 - Added the shared Core DEK-protector contract and updated JSON storage to consume it.
 - Added relational project test reference and SQLite regression test sources.
+- Corrected the test-only SQLite helpers to disable pooling so Windows can delete temporary databases immediately after each check.
 - Updated repository and package documentation with configuration and security boundaries.
 
 ## Checks performed
@@ -30,10 +31,11 @@ Implement the relational cookie-storage step with one SQLite provider supporting
 - Relational and test project files parse as XML.
 - `git diff --check` passes; only expected line-ending normalization warnings are reported.
 - Static inspection confirms that encrypted rows contain only blind-index, nonce, ciphertext, and tag columns, and that database mode mismatches fail before loading records.
-- Restore, compilation, package validation, and runtime tests have not been run because the user has not authorized them yet.
+- Authorized restore and multi-target solution build passed with 0 warnings and 0 errors.
+- The initial provider run passed 2/6 because pooled helper connections retained four temporary database files on Windows. The production provider already disabled pooling.
+- After using non-pooled connections in `ReadScalarAsync` and `ExecuteNonQueryAsync`, the isolated SQLite provider suite passed 6/6 on net10.0. The report is `TestResults/status-response/sqlite-pooling-fix.trx`.
 
 ## Open issues and recommended next step
 
-- Obtain authorization, then restore and build the solution and run the SQLite, JSON, cookie, pipeline, and ownership regression suites.
 - Explicit migration between plain and application-encrypted databases is intentionally outside this step.
 - Rollback protection, full-file encryption, multi-process coordination, key rotation, and online schema migration are future concerns.
